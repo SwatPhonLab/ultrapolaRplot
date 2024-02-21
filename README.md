@@ -3,7 +3,7 @@
 ```R
 library(ultrasoundPlotting)
 
-rawTraces <- loadTraces('/path/to/metadata.json', 'vowels')  # UltraTrace metadata file; tier to identify non-empty elements from for categories to plot
+rawTraces <- loadTraces('/path/to/project/', 'vowels')  # project directory containing UltraTrace metadata file; tier to identify non-empty elements from for categories to plot
 polarTraces <- makeTracesPolar(rawTraces)
 plotTraces(polarTraces)
 ```
