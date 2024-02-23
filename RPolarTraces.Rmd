@@ -552,7 +552,7 @@ myXY_data <- loadTraces(directory_name, categories)
 ```
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.x = 0.13)
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, myPalette = my_palette1, legend.position = "topleft", points.display = TRUE)
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, myPalette = my_palette1, legend.position = "topleft", points.display = FALSE, bands.lines = TRUE)
 ```
 Checking sizes IS A FUNCTION (that you will not be able to currently use)
 ```{r}
