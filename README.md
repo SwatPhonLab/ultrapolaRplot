@@ -5,7 +5,7 @@ library(ultrasoundPlotting)
 
 rawTraces <- loadTraces('/path/to/project/', 'vowels')  # project directory containing UltraTrace metadata file; tier to identify non-empty elements from for categories to plot
 polarTraces <- makeTracesPolar(rawTraces)
-plotTraces(polarTraces)
+plotTraces(rawTraces, polarTraces)
 ```
 
 ### Processing options (for `makeTracesPolar()`)
