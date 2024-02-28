@@ -1,6 +1,6 @@
-\name{UltrasoundPlotTraces}
-\alias{UltrasoundPlotTraces}
-\title{UltrasoundPlotTraces}
+\name{ultrasoundPlotting}
+\alias{ultrasoundPlotting}
+\title{ultrasoundPlotting}
 \usage{
 loadTraces()
 }
