@@ -142,6 +142,15 @@ sortedOrder <- function(listX){ #Sort by angle
   return(order_x)
 }
 
+calculateIntersection2 <- function(radiusPrevious, radiusNext, anglePrevious, angleRay, angleNext){
+  
+  differenceInTheta = angleNext - anglePrevious
+  differenceInRay = angleRay - anglePrevious
+  differenceInRadius = radiusNext - radiusPrevious
+  
+  return ( radiusPrevious + differenceInRay/differenceInTheta * differenceInRadius  )
+}
+
 read_in_data <- function(extractedData){
   dataR <- extractedData
 
