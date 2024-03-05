@@ -216,44 +216,44 @@ identifyPlotBounds <- function(compiledList){
   return(c(xmin, xmax, ymin, ymax))
 }
 
-formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5){
+formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, scaling.factor = 800/600){
   compiledList <- list()
-
+  
   for (segment in 1:length(dataOfEachCurveNNj)){
     listofarrays <- list()
     for (i in 1:length(dataOfEachCurveNNj[[segment]])){ #for each curve
-      n_rows <- 4 # no need for slope
+      n_rows <- 4 # no need for slope 
       n_cols <- length(dataOfEachCurveNNj[[segment]][[i]][,1])
       myCurveMatrix <- matrix(0, nrow = n_rows, ncol = n_cols) #each individual 2D array
-
+      
       #adjusted x and y values around the center
-      xvalues <- dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] - origin.x * 592/412 #include parameter for aspect ratio
+      xvalues <- dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] - origin.x * scaling.factor #include parameter for aspect ratio
       yvalues <- 1 - dataOfEachCurveNNj[[segment]][[i]][c(4)][[1]]
-
-
+      
+      
       anglevalues <- list()
-
+      
       for (j in 1: n_cols){
         anglevalues <- append(anglevalues, atan2(yvalues[[j]], xvalues[[j]]) )
       }
-
+      
       #sort by angle
       anglevalues <- unlist(anglevalues)
-
+      
       theOrderForSorting <- sortedOrder(anglevalues)
       xvaluesSorted <- xvalues[theOrderForSorting]
       yvaluesSorted <- yvalues[theOrderForSorting]
       anglevalues <- anglevalues[theOrderForSorting]
-
-
+      
+      
       for (j in 1:n_cols){
         myCurveMatrix[1,j] <- xvaluesSorted[[j]]
         myCurveMatrix[2,j] <- yvaluesSorted[[j]]
         myCurveMatrix[3,j] <- anglevalues[[j]] #angle in relation to (0,0)
         myCurveMatrix[4,j] <- (yvaluesSorted[[j]]^2 + xvaluesSorted[[j]]^2)^.5 #radius in relation to (0,0)
-
+        
       }
-
+      
       listofarrays[[i]] <-myCurveMatrix
     }
     compiledList[[uniqueSegments[[segment]]]] <- listofarrays
@@ -312,26 +312,26 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, myPalette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, bands.lines = FALSE, legend.position = "center"){
-
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, myPalette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, means.styles = "l", bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = "PolarTracePlot.pdf"){
+  
   plotbounds <- identifyPlotBounds(compiledList)
-
+  
   standardDeviation <- list()
   averagedRX <- list()
   averagedRY <- list()
-
+  
   for (segment in 1:length(uniqueSegments)){
     averagedRX[[uniqueSegments[[segment]]]] <- list()
     averagedRY[[uniqueSegments[[segment]]]] <- list()
-
+    
     standardDeviation[[uniqueSegments[[segment]]]] <- list()
-
+    
     for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
       if (!is.na(colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]])){ #as long as there is a mean for each column, store the value
         averagedRX[[segment]] <- append(averagedRX[[segment]], cos(rayIncrement*ray) * colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]] )
         averagedRY[[segment]] <- append(averagedRY[[segment]], sin(rayIncrement*ray) * colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]] )
         standardDeviation[[segment]] <- append(standardDeviation[[segment]], sd(matrixIntersection[[segment]][all(), ray], na.rm = TRUE))
-      }
+      } 
       else{
         averagedRX[[segment]] <- append(averagedRX[[segment]], NA)
         averagedRY[[segment]] <- append(averagedRY[[segment]], NA)
@@ -342,116 +342,119 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     averagedRY[[segment]] <- unlist(averagedRY[[segment]])
     standardDeviation[[segment]] <- unlist(standardDeviation[[segment]])
   }
-
-
+  
+  
   #we now have the standard deviation
   xSDHigh <- list()
   xSDLow <- list()
   ySDHigh <- list()
-  ySDLow <- list()
+  ySDLow <- list()  
   for (segment in 1:length(uniqueSegments)){
-
+    
     xSDHigh[[uniqueSegments[[segment]]]] <- list()
     xSDLow[[uniqueSegments[[segment]]]] <- list()
     ySDHigh[[uniqueSegments[[segment]]]] <- list()
     ySDLow[[uniqueSegments[[segment]]]] <- list()
-
+    
     for (i in 1:length(standardDeviation[[segment]])){
-
+      
       if (!is.na(standardDeviation[[segment]][[i]])){
         xSDHigh[[segment]]<- append(xSDHigh[[segment]], cos(i*rayIncrement) *standardDeviation[[segment]][[i]] + averagedRX[[segment]][[i]])
         xSDLow[[segment]] <-  append( xSDLow[[segment]], -1*cos(i*rayIncrement) *standardDeviation[[segment]][[i]] + averagedRX[[segment]][[i]])
-
+        
         ySDHigh[[segment]] <- append(ySDHigh[[segment]], sin(i*rayIncrement) *standardDeviation[[segment]][[i]] + averagedRY[[segment]][[i]])
         ySDLow[[segment]] <-  append(ySDLow[[segment]], -1*sin(i*rayIncrement) *standardDeviation[[segment]][[i]] + averagedRY[[segment]][[i]])
-
+        
       }
       # else{
       #   xSDHigh[[segment]]<- append(xSDHigh[[segment]], NA)
       #   xSDLow[[segment]] <-  append( xSDLow[[segment]], NA)
-      #
+      #   
       #   ySDHigh[[segment]] <- append(ySDHigh[[segment]], NA)
       #   ySDLow[[segment]] <-  append(ySDLow[[segment]], NA)
       # }
-
+      
     }
   }
-
-
+  
+  
   xPlotAverage <- (plotbounds[[1]] + plotbounds[[2]])/2
   yPlotAverage <- (plotbounds[[3]] + plotbounds[[4]])/2
   x_ticks <- c(round(plotbounds[[1]],2), round(xPlotAverage,2), round(plotbounds[[2]],2))
   y_ticks <- c(round(plotbounds[[3]],2), round(yPlotAverage,2), round(plotbounds[[4]],2))
-
+  
+  #pdf(pdf.filename)
   par(pty = "s")
-
+  
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1)
-
+  
   axis(1, at = x_ticks)
   axis(2, at = y_ticks)
-
-
+  
+  
   if (length(myPalette) == 0){
     numberOfColors <- length(uniqueSegments) + 2
     paletteColors <- (brewer.pal(numberOfColors, "RdBu"))[2:numberOfColors] #PuRd nice
-
+    
   }else{
     paletteColors <- myPalette
   }
-
-
+  
+  
   for (segment in 1:length(uniqueSegments)){
     #Shading
     x1 <- rev(unlist(lapply(xSDLow[[segment]], function(x) na.omit(x)), recursive = TRUE))
     y1 <- rev(unlist(lapply(ySDLow[[segment]], function(x) na.omit(x)), recursive = TRUE))
-
-
+    
+    
     x2 <- rev(unlist(lapply(xSDHigh[[segment]], function(x) na.omit(x)), recursive = TRUE))
     y2 <- rev(unlist(lapply(ySDHigh[[segment]], function(x) na.omit(x)), recursive = TRUE))
-
-
+    
+    
     #print(xSDHigh[[segment]])
-
+    
     #Plot the upper lower standard devation lines
     if (bands.lines == TRUE){
-      lines(x1, y1, type = "l", col = paletteColors[[segment]], lwd = 2)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
-      lines(x2, y2, col = paletteColors[[segment]], lwd = 2)
+      lines(x1, y1, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = 1.4)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
+      lines(x2, y2, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = 1.4)
     }
-
-
-    # Create a polygon to shade the region between the arches
-    polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor(paletteColors[[segment]], alpha.f = 0.37), border = NA)
-
+    
+    if (bands.fill == TRUE){
+      # Create a polygon to shade the region between the arches
+      polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor(paletteColors[[segment]], alpha.f = 0.37), border = NA)
+    }
+    
+    
     if (mean.lines){
       if (!all(is.na(standardDeviation[[segment]]))){
-        lines(averagedRX[[segment]], averagedRY[[segment]], type = "l", col = paletteColors[[segment]] , lwd = 1) #you could also have black...
+        lines(averagedRX[[segment]], averagedRY[[segment]], type = means.styles, col = paletteColors[[segment]] , lwd = 1) #you could also have black...
       }else{
-        lines(averagedRX[[segment]], averagedRY[[segment]], type = "l", col = paletteColors[[segment]] , lwd = 1)
+        lines(averagedRX[[segment]], averagedRY[[segment]], type = means.styles, col = paletteColors[[segment]] , lwd = 1)
       }
     }
-
+    
     if (points.display){
       for (trace in 1:length(compiledList[[segment]])){
         points(compiledList[[segment]][[trace]][1, all()], compiledList[[segment]][[trace]][2, all()], type = "p", col = paletteColors[[segment]], asp = 1)
       }
     }
-
+    
     if (legend.position == "center"){
       legend(xPlotAverage, yPlotAverage, legend = uniqueSegments, fill = paletteColors, cex = .9)
     } else if (legend.position == "topleft"){
       legend(plotbounds[[1]], plotbounds[[4]], legend = uniqueSegments, fill = paletteColors, cex = .6)
     }
-
+    
   }
 }
 
-makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin.x = NA){
-
+makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600){
+  
   uniqueSegments <- get_unique_segments(myXY_data)
   dataOfEachCurveNNj <- read_in_data(myXY_data)
   xaverage <- identifyXAverage(myXY_data)
-
-
+  
+  
   if (origin.algorithm == "BottomMiddle"){
     if (is.na(origin.x)){
       origin.x = .5
@@ -459,19 +462,19 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
   }else if (origin.algorithm == "BottomMean"){
     origin.x = xaverage
   }
-
-  compiledList <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x)
+  
+  compiledList <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x, scaling.factor = scaling.factor)
   return(compiledList)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, myPalette = c(), bands.lines = FALSE, legend.position = "center"){
-
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, myPalette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l"){
+  
   rayIncrement = 3.14159/180 * interval
-
+  
   uniqueSegments <- get_unique_segments(myXY_data)
   dataOfEachCurveNNj <- read_in_data(myXY_data)
-
+  
   matrixIntersection <- find_intersection_with_ray(compiledList, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
-
-  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, myPalette = myPalette, bands.lines = bands.lines, legend.position = legend.position)
+  
+  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, myPalette = myPalette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles)
 }

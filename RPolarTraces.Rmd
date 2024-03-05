@@ -256,7 +256,7 @@ identifyPlotBounds <- function(compiledList){
 
 Setting up 3D array for each segment: contains 1) x values 2) y values 3) angle in radians 4) radius
 ```{r}
-formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5){
+formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, scaling.factor = 800/600){
   compiledList <- list()
   
   for (segment in 1:length(dataOfEachCurveNNj)){
@@ -267,7 +267,7 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5){
       myCurveMatrix <- matrix(0, nrow = n_rows, ncol = n_cols) #each individual 2D array
       
       #adjusted x and y values around the center
-      xvalues <- dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] - origin.x * 592/412 #include parameter for aspect ratio
+      xvalues <- dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] - origin.x * scaling.factor #include parameter for aspect ratio
       yvalues <- 1 - dataOfEachCurveNNj[[segment]][[i]][c(4)][[1]]
       
       
@@ -369,7 +369,7 @@ my_palette1 <- c(
   "#FFCCCC", "#E6CCFF", "#CCE6FF"    # Lighter Red, Lighter Purple, Lighter Blue
 )
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, myPalette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, bands.lines = FALSE, legend.position = "center"){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, myPalette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, means.styles = "l", bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = "PolarTracePlot.pdf"){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -440,6 +440,7 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   x_ticks <- c(round(plotbounds[[1]],2), round(xPlotAverage,2), round(plotbounds[[2]],2))
   y_ticks <- c(round(plotbounds[[3]],2), round(yPlotAverage,2), round(plotbounds[[4]],2))
   
+  #pdf(pdf.filename)
   par(pty = "s")
   
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1)
@@ -471,19 +472,21 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     
     #Plot the upper lower standard devation lines
     if (bands.lines == TRUE){
-      lines(x1, y1, type = "l", col = paletteColors[[segment]], lwd = 2)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
-      lines(x2, y2, col = paletteColors[[segment]], lwd = 2)
+      lines(x1, y1, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = 1.4)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
+      lines(x2, y2, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = 1.4)
+    }
+    
+    if (bands.fill == TRUE){
+      # Create a polygon to shade the region between the arches
+      polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor(paletteColors[[segment]], alpha.f = 0.37), border = NA)
     }
     
 
-    # Create a polygon to shade the region between the arches
-    polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor(paletteColors[[segment]], alpha.f = 0.37), border = NA)
-
     if (mean.lines){
        if (!all(is.na(standardDeviation[[segment]]))){
-        lines(averagedRX[[segment]], averagedRY[[segment]], type = "l", col = paletteColors[[segment]] , lwd = 1) #you could also have black...
+        lines(averagedRX[[segment]], averagedRY[[segment]], type = means.styles, col = paletteColors[[segment]] , lwd = 1) #you could also have black...
       }else{
-        lines(averagedRX[[segment]], averagedRY[[segment]], type = "l", col = paletteColors[[segment]] , lwd = 1)
+        lines(averagedRX[[segment]], averagedRY[[segment]], type = means.styles, col = paletteColors[[segment]] , lwd = 1)
       }
     }
     
@@ -506,7 +509,7 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
 
 PUTTING CONVERTING TO RADIANS ALL TOGETHER
 ```{r}
-makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin.x = NA){
+makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600){
   
   uniqueSegments <- get_unique_segments(myXY_data)
   dataOfEachCurveNNj <- read_in_data(myXY_data)
@@ -521,7 +524,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
     origin.x = xaverage
   }
   
-  compiledList <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x)
+  compiledList <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x, scaling.factor = scaling.factor)
   return(compiledList)
 }
 
@@ -531,7 +534,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
 ```
 
 ```{r}
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, myPalette = c(), bands.lines = FALSE, legend.position = "center"){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, myPalette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l"){
   
   rayIncrement = 3.14159/180 * interval
   
@@ -540,19 +543,19 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
   
   matrixIntersection <- find_intersection_with_ray(compiledList, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
     
-  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, myPalette = myPalette, bands.lines = bands.lines, legend.position = legend.position)
+  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, myPalette = myPalette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles)
 }
 ```
 
 ```{r}
-directory_name <- "your directory path which includes metadata file as well as textgrid files"
+directory_name <- "/Users/yayaorigami/Documents/plinguistics/Dataset3"
 categories <- c("u", "o", "ɑ", "ɯ", "ø", "y")
 
 myXY_data <- loadTraces(directory_name, categories)
 ```
 ```{r}
-polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.x = 0.13)
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, myPalette = my_palette1, legend.position = "topleft", points.display = FALSE, bands.lines = TRUE)
+polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.x = 0.13,, scaling.factor = 592/412)
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, myPalette = my_palette1, legend.position = "topleft", points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE)
 ```
 Checking sizes IS A FUNCTION (that you will not be able to currently use)
 ```{r}
