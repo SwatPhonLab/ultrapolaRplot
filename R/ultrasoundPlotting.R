@@ -227,7 +227,7 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
       myCurveMatrix <- matrix(0, nrow = n_rows, ncol = n_cols) #each individual 2D array
       
       #adjusted x and y values around the center
-      xvalues <- dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] - origin.x * scaling.factor #include parameter for aspect ratio
+      xvalues <- (dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] * scaling.factor) - (origin.x*scaling.factor) #include parameter for aspect ratio
       yvalues <- 1 - dataOfEachCurveNNj[[segment]][[i]][c(4)][[1]]
       
       
