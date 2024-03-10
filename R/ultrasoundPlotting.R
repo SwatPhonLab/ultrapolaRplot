@@ -14,24 +14,24 @@
 #   Test Package:              'Cmd + Shift + T'
 
 loadTraces <- function(directory_name, categories = c()){
-
+  
   metaDataFile <- paste(directory_name, "metadata.json", sep = "/") #is this an ok approach?
   #is it guaranteed that the meta file will be called metadata, and is in the same directory level
-
+  
   if (!file.exists(metaDataFile)){
     stop("metadata file does not exist in given directory")
   }
-
+  
   metaData <- fromJSON(file = metaDataFile)
-
+  
   traces_raw <- metaData$traces["Tongue"]
   filesAll <- metaData$files
-
+  
   myXY_data <- data.frame()
   column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y')
   myXY_data <- rbind(myXY_data, column_names)
   allRowsTextGrids <- list()
-
+  
   for (individualFile in 1:length(filesAll)){
     #accessing text grid files
     recording_name <- filesAll[[individualFile]]$.TextGrid
@@ -39,42 +39,42 @@ loadTraces <- function(directory_name, categories = c()){
     #used to access text grid files
     fullFilePath <- file.path(directory_name, recording_name)
     #print(fullFilePath)
-
+    
     cur_recording <- metaData$traces$tongue$files[[(filesAll[[individualFile]]$name)]]
-
+    
     if (is.null(cur_recording)){
       listExists <- 0
     }else{
       listExists <- max(unlist(lapply(metaData$traces$tongue$files[[(filesAll[[individualFile]]$name)]], length)))
     }
-
+    
     #read text grid if it is not empty
     if (listExists > 1){
       #read in text grid data but only if recording > 0
       #Reading Text Grid
       textGridDataFile <- read_textgrid(fullFilePath)
-
+      
       #time to parse
       intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
       #intervalData <- intervalData[intervalData$tier_name == "orthographic vowel",] #limits to the tier that actually has annotations, for speed
       #doesn't work actually for large datasets...
-
+      
       if (length(categories) == 0){ #read all segments
         intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
       } else { #specific categories specified
         intervalData <- intervalData[intervalData$text %in% categories, ]
       }
-
+      
       fileNumber <- (intervalData$file)[1]
-
+      
       df <- intervalData
-
+      
       #attaching midpoint and plainTextname for later textgrid access
       df <- df %>% mutate(mid_point = (xmin + xmax)/2) #THIS IS FINE
       df <- df %>% mutate(plainTextName = plainTextname)
-
+      
       textTiers <-  textGridDataFile[textGridDataFile$tier_type == "TextTier",]
-
+      
       if (nrow(df) > 0){
         #1) using df min and max, isolate textTiers fragment
         #2) out of fragment, find textTier closest to midpoint
@@ -83,7 +83,7 @@ loadTraces <- function(directory_name, categories = c()){
           min <- (df$xmin)[[midpoint]]
           max <- df$xmax[[midpoint]]
           textTierSection <- textTiers[textTiers$xmin >= min & textTiers$xmin <= max, ]
-
+          
           if (nrow(textTierSection)!=0){
             frameNumber <- (textTierSection[which.min(abs(textTierSection$xmin - df$mid_point[[midpoint]])), ])$text
           }else{ #special case
@@ -91,10 +91,10 @@ loadTraces <- function(directory_name, categories = c()){
           }
           frameNumberList = append(frameNumberList, frameNumber)
         }
-
+        
         frameNumberList <- unlist(frameNumberList)
         df <- df %>% mutate(frame = frameNumberList)
-
+        
         for (midpoint in 1:length(df$mid_point)){
           allRowsTextGrids <- rbind(allRowsTextGrids, data.frame(df[midpoint,])) #necessary in case multiple text grid files
         }
@@ -102,28 +102,28 @@ loadTraces <- function(directory_name, categories = c()){
     }else{
       #print("skipping this textgrid file")
     }
-
+    
   }
-
+  
   #extract xy data separately once we have all the data
-
+  
   #allRowsTextGrids
   #textTiers
-
+  
   for(frame in 1:length(allRowsTextGrids$frame)){
     frameNumber = (allRowsTextGrids$frame)[[frame]]
     plainTextname <- allRowsTextGrids$plainTextName[[frame]]
     xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
-
+    
     myFileAndFrameName <- paste(plainTextname, "_", frameNumber, sep = "")
     myVowelType <- (allRowsTextGrids$text)[[frame]]
-
+    
     if (length(xyFileData)>0){
       for (mark in 1:length(xyFileData)){
         itemNumber <- mark
         xCoor <- xyFileData[[mark]]$x
         yCoor <- xyFileData[[mark]]$y
-
+        
         #build data.frame
         appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor)
         myXY_data <- rbind(myXY_data, appendedXYFrame)
@@ -134,6 +134,12 @@ loadTraces <- function(directory_name, categories = c()){
   myXY_data <- myXY_data[-1, ] #delete the heading that is in row 1
   myXY_data[ ,4] <- as.numeric(myXY_data[ ,4]) #x, y are ints for graphing
   myXY_data[ ,5] <- as.numeric(myXY_data[ ,5])
+  
+  #a[order(factor(a$x, levels = reference)),] #sorting given user input
+  if (length(categories) != 0){
+    myXY_data = myXY_data[order(factor(myXY_data$segment, levels = categories)), ]
+  }
+  
   return(myXY_data)
 }
 
@@ -312,7 +318,7 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, myPalette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, means.styles = "l", bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = "PolarTracePlot.pdf"){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, means.styles = "l", bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = "PolarTracePlot.pdf", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -380,24 +386,35 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   
   xPlotAverage <- (plotbounds[[1]] + plotbounds[[2]])/2
   yPlotAverage <- (plotbounds[[3]] + plotbounds[[4]])/2
-  x_ticks <- c(round(plotbounds[[1]],2), round(xPlotAverage,2), round(plotbounds[[2]],2))
-  y_ticks <- c(round(plotbounds[[3]],2), round(yPlotAverage,2), round(plotbounds[[4]],2))
+  
+  if (plot.ticks == TRUE){
+    x_ticks <- c(round(plotbounds[[1]],2), round(xPlotAverage,2), round(plotbounds[[2]],2))
+    y_ticks <- c(round(plotbounds[[3]],2), round(yPlotAverage,2), round(plotbounds[[4]],2))
+    x_ticks_lables <- c(round(plotbounds[[1]],2)*100, round(xPlotAverage,2)*100, round(plotbounds[[2]],2)*100)
+    y_ticks_lables <- c(round(plotbounds[[3]],2)*100, round(yPlotAverage,2)*100, round(plotbounds[[4]],2)*100)
+  } else {
+    x_ticks <- c(round(plotbounds[[1]],2) + 2, round(xPlotAverage,2) + 2, round(plotbounds[[2]],2) + 2)
+    y_ticks <- c(round(plotbounds[[3]],2) + 1, round(yPlotAverage,2) + 1, round(plotbounds[[4]],2) + 1)
+    x_ticks_lables <- c(1,2,3)
+    y_ticks_lables <- c(1,2,3)
+  }
+  
   
   #pdf(pdf.filename)
   par(pty = "s")
   
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1)
   
-  axis(1, at = x_ticks)
-  axis(2, at = y_ticks)
+  axis(1, at = x_ticks, labels = x_ticks_lables)
+  axis(2, at = y_ticks, labels = y_ticks_lables)
   
   
-  if (length(myPalette) == 0){
+  if (length(palette) == 0){
     numberOfColors <- length(uniqueSegments) + 2
     paletteColors <- (brewer.pal(numberOfColors, "RdBu"))[2:numberOfColors] #PuRd nice
     
   }else{
-    paletteColors <- myPalette
+    paletteColors <- palette
   }
   
   
@@ -415,13 +432,13 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     
     #Plot the upper lower standard devation lines
     if (bands.lines == TRUE){
-      lines(x1, y1, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = 1.4)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
-      lines(x2, y2, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = 1.4)
+      lines(x1, y1, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = .3)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
+      lines(x2, y2, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = .3)
     }
     
     if (bands.fill == TRUE){
       # Create a polygon to shade the region between the arches
-      polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor(paletteColors[[segment]], alpha.f = 0.37), border = NA)
+      polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor(paletteColors[[segment]], alpha.f = transparency), border = NA)
     }
     
     
@@ -440,9 +457,9 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     }
     
     if (legend.position == "center"){
-      legend(xPlotAverage, yPlotAverage, legend = uniqueSegments, fill = paletteColors, cex = .9)
+      legend(xPlotAverage, yPlotAverage, legend = uniqueSegments, fill = paletteColors, cex = legend.size)
     } else if (legend.position == "topleft"){
-      legend(plotbounds[[1]], plotbounds[[4]], legend = uniqueSegments, fill = paletteColors, cex = .6)
+      legend(plotbounds[[1]], plotbounds[[4]], legend = uniqueSegments, fill = paletteColors, cex = legend.size)
     }
     
   }
@@ -467,7 +484,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
   return(compiledList)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, myPalette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l"){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37){
   
   rayIncrement = 3.14159/180 * interval
   
@@ -476,5 +493,5 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
   
   matrixIntersection <- find_intersection_with_ray(compiledList, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, myPalette = myPalette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles)
+  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency)
 }
