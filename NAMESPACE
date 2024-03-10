@@ -1,1 +1,6 @@
 exportPattern("^[[:alpha:]]+")
+import(rjson)
+import(dplyr)
+import(tibble)
+import(RColorBrewer)
+
