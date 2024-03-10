@@ -565,7 +565,8 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
 ```
 
 ```{r}
-
+directory_name <- "/Users/yayaorigami/Documents/plinguistics/Dataset3"
+#directory_name <- "/Users/yayaorigami/Documents/plinguistics/ultrasound-data-RussianPalatals-202012/"
 categories <- c("o","y", "e", "i")
 #categories <- c("nʲ", "n")
 
