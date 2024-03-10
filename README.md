@@ -10,7 +10,7 @@ Currently ultrapolaRplot supports ultrasound tongue imaging trace data from [Ult
 ## Use
 
 ```R
-library(ultrasoundPlotting)
+library(ultrapolaRplot)
 
 rawTraces <- loadTraces('/path/to/project/', 'vowels')  # project directory containing UltraTrace metadata file; tier to identify non-empty elements from for categories to plot
 polarTraces <- makeTracesPolar(rawTraces)
