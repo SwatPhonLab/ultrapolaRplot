@@ -375,7 +375,7 @@ my_palette1 <- c(
   "#FFCCCC", "#E6CCFF", "#CCE6FF"    # Lighter Red, Lighter Purple, Lighter Blue
 )
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, means.styles = "l", bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename =  "~/Desktop/ultrapolaRplotOutput", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, means.styles = "l", bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = c(), plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -456,8 +456,11 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     y_ticks_lables <- c(1,2,3)
   }
   
-  pdf.options(encoding = "CP1250")
-  pdf(file = pdf.filename)
+  if (length(pdf.filename)!=0){
+     pdf.options(encoding = "CP1250")
+     pdf(file = pdf.filename)
+  }
+ 
   
   par(pty = "s")
   
@@ -521,7 +524,11 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     }
       
   }
-  dev.off()
+  
+  if(length(pdf.filename)!=0){
+    dev.off()
+  }
+  
 }
 ```
 
@@ -552,7 +559,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
 ```
 
 ```{r}
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37, pdf.filename = "~/Desktop/ultrapolaRplotOutput"){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37, pdf.filename = c()){
   
   rayIncrement = 3.14159/180 * interval
   
@@ -566,17 +573,17 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
 ```
 
 ```{r}
-directory_name <- "/Users/yayaorigami/Documents/plinguistics/Dataset3"
+directory_name <- "/Users/yayaorigami/Documents/plinguistics/IETestData"
 #directory_name <- "/Users/yayaorigami/Documents/plinguistics/ultrasound-data-RussianPalatals-202012/"
 categories <- c("o","y", "e", "i")
 #categories <- c("nʲ", "n")
 
-myXY_data <- loadTraces(directory_name, categories)
+myXY_data <- loadTraces(directory_name, c("o","i","e"))
 myXY_data
 ```
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.algorithm = "BottomMean", scaling.factor = 592/412)
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, palette = my_palette1, legend.position = "center", points.display = TRUE, bands.lines = TRUE, bands.fill = TRUE, legend.size = 0.65, transparency = 0.1, pdf.filename = "~/Desktop/testingFilenameUltraPlot")
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, palette = my_palette1, legend.position = "center", points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, legend.size = 0.65, transparency = 0.37)
 ```
 Checking sizes IS A FUNCTION (that you will not be able to currently use)
 ```{r}
