@@ -318,7 +318,7 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, means.styles = "l", bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = "PolarTracePlot.pdf", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = FALSE, means.styles = "l", bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename =  "~/Desktop/ultrapolaRplotOutput", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -399,8 +399,9 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     y_ticks_lables <- c(1,2,3)
   }
   
+  pdf.options(encoding = "CP1250")
+  pdf(file = pdf.filename)
   
-  #pdf(pdf.filename)
   par(pty = "s")
   
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1)
@@ -463,6 +464,7 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     }
     
   }
+  dev.off()
 }
 
 makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600){
@@ -484,7 +486,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
   return(compiledList)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l", plot.ticks = FALSE, legend.size = 0.6, transparency = 0.37, pdf.filename = "~/Desktop/ultrapolaRplotOutput"){
   
   rayIncrement = 3.14159/180 * interval
   
@@ -493,5 +495,5 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
   
   matrixIntersection <- find_intersection_with_ray(compiledList, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency)
+  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename)
 }
