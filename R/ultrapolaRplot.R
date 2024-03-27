@@ -318,7 +318,7 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -456,18 +456,17 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
       polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor(paletteColors[[segment]], alpha.f = transparency), border = NA)
     }
     
-    
     if (length(means.styles) < length(compiledList)){
       for (i in 1:(length(compiledList) - length(means.styles))){
-        means.styles = append(means.styles, "l")
+        means.styles = append(means.styles, 1)
       }
     }
     
     if (mean.lines){
       if (!all(is.na(standardDeviation[[segment]]))){
-        lines(averagedRX[[segment]], averagedRY[[segment]], type = means.styles[[segment]], col = paletteColors[[segment]] , lwd = 3) #you could also have black...
+        lines(averagedRX[[segment]], averagedRY[[segment]], type = "l", lty = means.styles[[segment]], col = paletteColors[[segment]] , lwd = means.linewidth) #you could also have black...
       }else{ #differentiating if there is a standard deviation band or not, currently no differation
-        lines(averagedRX[[segment]], averagedRY[[segment]], type = means.styles[[segment]], col = paletteColors[[segment]] , lwd = 3)
+        lines(averagedRX[[segment]], averagedRY[[segment]], type = "l", lty = means.styles[[segment]], col = paletteColors[[segment]] , lwd = means.linewidth)
       }
     }
     
@@ -477,23 +476,11 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
       }
     }
     
-    if (length(pdf.filename) == 0 && length(png.filename) == 0){
-      legend.size = 0.6
-    }
+    # if (length(pdf.filename) == 0 && length(png.filename) == 0){
+    #   legend.size = 0.6
+    # }
     
-    ltyNumerical = list()
-    for (lineType in 1:length(means.styles)){
-      if (means.styles[[lineType]] == "l"){
-        ltyNumerical = append(ltyNumerical, 1)
-      }else if (means.styles[[lineType]] == "p"){
-        ltyNumerical = append(ltyNumerical, 3)
-      }else if (means.styles[[lineType]] == "o"){
-        ltyNumerical = append(ltyNumerical, 2)
-      }else{
-        ltyNumerical = append(ltyNumerical, 6)
-      }
-    }
-    ltyNumerical = unlist(ltyNumerical)
+    ltyNumerical = means.styles
     
     numberColumns = 1
     numberColumns = round(length(uniqueSegments)/5)
@@ -503,13 +490,13 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     
     if (legend.position == "center"){
       # legend(xPlotAverage, yPlotAverage, legend = uniqueSegments,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
-      legend("center", legend = uniqueSegments,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol =  numberColumns)
+      legend("center", legend = uniqueSegments,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     } else if (legend.position == "topleft"){
       # legend(plotbounds[[1]], plotbounds[[4]], legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
-      legend("topleft", inset = 0.5, legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol =  numberColumns)
+      legend("topleft", inset = 0.5, legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     }else if (legend.position == "bottomright"){
       # legend((xPlotAverage + .5*plotbounds[[2]]), yPlotAverage,  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol = round(length(uniqueSegments)/5))
-      legend("bottomright",  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol =  numberColumns)
+      legend("bottomright",  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     }
   }
   
@@ -538,7 +525,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
   return(compiledList)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = "l", standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c()){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3){
   
   rayIncrement = 3.14159/180 * interval
   
@@ -547,5 +534,5 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
   
   matrixIntersection <- find_intersection_with_ray(compiledList, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename, bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename)
+  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename, bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, legend.linewidth = legend.linewidth, means.linewidth = means.linewidth)
 }
