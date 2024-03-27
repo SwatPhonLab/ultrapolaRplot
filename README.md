@@ -9,6 +9,8 @@ Currently ultrapolaRplot supports ultrasound tongue imaging trace data from [Ult
 
 ## Use
 
+The following code snippet shows a basic example of use:
+
 ```R
 library(ultrapolaRplot)
 
@@ -16,6 +18,11 @@ rawTraces <- loadTraces('/path/to/project/', 'vowels')  # project directory cont
 polarTraces <- makeTracesPolar(rawTraces)
 plotTraces(rawTraces, polarTraces)
 ```
+
+### Loading options (for `loadTraces()`)
+* first argument is directory of project
+* second argument (optional) is tier name to load categories from
+* third argument (optional) is a list of exact categories to load (e.g., `c('nʲ', 'n')`)
 
 ### Processing options (for `makeTracesPolar()`)
 * `origin.algorithm` - algorithm to use in deciding origin of polar coordinate system; either bottom middle of frames (`BottomMiddle`, default) or bottom and mean of left-right range (`BottomMean`)
@@ -45,3 +52,18 @@ plotTraces(rawTraces, polarTraces)
 * `legend.position` - default "center", with an option of "topleft", "bottomright"
 * `legend.size` - size of legend (default = 0.6)
 * `legend` - override legend properties (position, title, border, etc.) - see legend documentation
+
+## Installation
+
+### Installing from CRAN
+
+Most users will want to install ultrapolaRplot this way.  Currently the library is not in CRAN, but submission is planned.
+
+### Installing from source
+
+To install the latest version of ultrapolaRplot from source, download the contents of this git repository locally, and install using the following command in R, replacing `/path/to/` with the absolute or relative path (directory) to the library:
+
+```R
+devtools::install("/path/to/ultrapolaRplot/")
+```
+
