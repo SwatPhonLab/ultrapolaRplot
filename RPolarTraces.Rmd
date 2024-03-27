@@ -32,7 +32,7 @@ library(Cairo)
 ```
 
 ```{r}
-loadTraces <- function(directory_name, tiername = c(), categories = c()){
+loadTraces <- function(directory_name, tiername = "", categories = c()){
 
   metaDataFile <- paste(directory_name, "metadata.json", sep = "/") #is this an ok approach?
   #is it guaranteed that the meta file will be called metadata, and is in the same directory level
@@ -75,15 +75,15 @@ loadTraces <- function(directory_name, tiername = c(), categories = c()){
 
       #time to parse
       intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
-      if (length(tiername)!=0){
-        intervalData <- intervalData[intervalData$tier_name == "vowels",]
+      if (nchar(tiername)!=0){
+        intervalData <- intervalData[intervalData$tier_name == tiername,]
       }
        #limits to the tier that actually has annotations, for speed
       #doesn't work actually for large datasets...
 
       if (length(categories) == 0){ #read all segments
         #intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
-        intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything
+        intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything, that is not a blank space
       } else { #specific categories specified
         intervalData <- intervalData[intervalData$text %in% categories, ]
       }
@@ -620,7 +620,7 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
 categories <- c("o","y", "e", "i")
 #categories <- c("nʲ", "n")
 
-myXY_data <- loadTraces("/Users/yayaorigami/Documents/plinguistics/Dataset3/", "vowels")
+myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/IETestData/")
 myXY_data
 ```
 ```{r}

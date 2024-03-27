@@ -13,7 +13,7 @@
 #   Check Package:             'Cmd + Shift + E'
 #   Test Package:              'Cmd + Shift + T'
 
-loadTraces <- function(directory_name, tiername = c(), categories = c()){
+loadTraces <- function(directory_name, tiername = "", categories = c()){
   
   metaDataFile <- paste(directory_name, "metadata.json", sep = "/") #is this an ok approach?
   #is it guaranteed that the meta file will be called metadata, and is in the same directory level
@@ -56,8 +56,8 @@ loadTraces <- function(directory_name, tiername = c(), categories = c()){
       
       #time to parse
       intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
-      if (length(tiername)!=0){
-        intervalData <- intervalData[intervalData$tier_name == "vowels",]
+      if (nchar(tiername)!=0){
+        intervalData <- intervalData[intervalData$tier_name == tiername,]
       }
       #limits to the tier that actually has annotations, for speed
       #doesn't work actually for large datasets...
