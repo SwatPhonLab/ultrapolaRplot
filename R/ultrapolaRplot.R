@@ -13,7 +13,7 @@
 #   Check Package:             'Cmd + Shift + E'
 #   Test Package:              'Cmd + Shift + T'
 
-loadTraces <- function(directory_name, categories = c()){
+loadTraces <- function(directory_name, tiername = c(), categories = c()){
   
   metaDataFile <- paste(directory_name, "metadata.json", sep = "/") #is this an ok approach?
   #is it guaranteed that the meta file will be called metadata, and is in the same directory level
@@ -56,11 +56,15 @@ loadTraces <- function(directory_name, categories = c()){
       
       #time to parse
       intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
-      #intervalData <- intervalData[intervalData$tier_name == "orthographic vowel",] #limits to the tier that actually has annotations, for speed
+      if (length(tiername)!=0){
+        intervalData <- intervalData[intervalData$tier_name == "vowels",]
+      }
+      #limits to the tier that actually has annotations, for speed
       #doesn't work actually for large datasets...
       
       if (length(categories) == 0){ #read all segments
-        intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
+        #intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
+        intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything
       } else { #specific categories specified
         intervalData <- intervalData[intervalData$text %in% categories, ]
       }
@@ -318,7 +322,7 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -417,8 +421,8 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1, family = "DejaVu Serif", cex.axis = 20)
   
   if(plot.ticks == TRUE){
-    axis(1, at = x_ticks, labels = x_ticks_lables, cex.axis = 20)
-    axis(2, at = y_ticks, labels = y_ticks_lables, cex.axis = 20)
+    axis(1, at = x_ticks, labels = x_ticks_lables, cex.axis = tick.size)
+    axis(2, at = y_ticks, labels = y_ticks_lables, cex.axis = tick.size)
   }else{
     axis(1, at = x_ticks, labels = x_ticks_lables, tck = 0)
     axis(2, at = y_ticks, labels = y_ticks_lables, tck = 0)
@@ -525,7 +529,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
   return(compiledList)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
   
   rayIncrement = 3.14159/180 * interval
   
@@ -534,5 +538,5 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
   
   matrixIntersection <- find_intersection_with_ray(compiledList, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename, bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, legend.linewidth = legend.linewidth, means.linewidth = means.linewidth)
+  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename, bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size)
 }
