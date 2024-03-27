@@ -39,6 +39,7 @@ plotTraces(rawTraces, polarTraces)
 * `means.lines` - boolean, whether or not to display mean lines
 * `means.points` - boolean, whether or not to show points on lines for means
 * `means.styles` - array to override default solid line (sequentially in order of categories)
+* `means.linewidth` - size of mean lines
 * `standard.deviation.styles` - line type for standard deviation upper and low bands, (default = "l")
 * `transparency` - transparency of standard deviation bands (default = 0.37)
 * `palette` - array to override default colour palette
@@ -46,11 +47,13 @@ plotTraces(rawTraces, polarTraces)
 * `png.filename` - png file name, saves in current directory
 * `plot.labels` - boolean, whether or not to show labels
 * `plot.ticks` - boolean, whether or not to show tick marks
+* `tick.size` - size of label scaling on axises
 * `points.display` - boolean, whether or not to show original annotated points
 * `points.styles` - array to override default circle style (e.g., category, x, dot, etc.)
 * `labels` - array to override labels
 * `legend.position` - default "center", with an option of "topleft", "bottomright"
 * `legend.size` - size of legend (default = 0.6)
+* `legend.linewidth` - size of displayed legend lines 
 * `legend` - override legend properties (position, title, border, etc.) - see legend documentation
 
 ## Installation
