@@ -52,7 +52,16 @@ loadTraces <- function(directory_name, tiername = "", categories = c()){
     if (listExists > 1){
       #read in text grid data but only if recording > 0
       #Reading Text Grid
-      textGridDataFile <- read_textgrid(fullFilePath)
+      errorCode = 0
+      tryCatch({
+        textGridDataFile <- read_textgrid(fullFilePath)
+      }, error = function(e){
+        print("cannot open textgrid")
+        errorCode = 1
+      })
+      if(errorCode==1){
+        next
+      }
       
       #time to parse
       intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]

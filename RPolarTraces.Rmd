@@ -71,8 +71,17 @@ loadTraces <- function(directory_name, tiername = "", categories = c()){
     if (listExists > 1){
          #read in text grid data but only if recording > 0
       #Reading Text Grid
-      textGridDataFile <- read_textgrid(fullFilePath)
-
+      errorCode = 0
+      tryCatch({
+        textGridDataFile <- read_textgrid(fullFilePath)
+      }, error = function(e){
+        print("cannot open textgrid")
+        errorCode = 1
+      })
+      if(errorCode==1){
+        next
+      }
+      
       #time to parse
       intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
       if (nchar(tiername)!=0){
@@ -634,12 +643,12 @@ categories <- c("o","y", "e", "i")
 categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 #categories <- c("nʲ", "n")
 
-myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/ultrasound-data-RussianPalatals-202012/", "cons2")
+myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012/", "cons", c("n", "l"))
 myXY_data
 ```
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.algorithm = "BottomMean", scaling.factor = 592/412)
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 2, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, plot.ticks = TRUE, legend.size = 2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 2, bands.linewidth = .3)#, png.filename = "ok4.png")
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 2, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, plot.ticks = TRUE, legend.size = 1.2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3)#, png.filename = "ok4.png")
 ```
 Set1, png resolution, topleft, tiername bug
 
