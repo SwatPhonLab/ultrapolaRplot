@@ -340,7 +340,7 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -446,8 +446,8 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     axis(1, at = x_ticks, labels = x_ticks_lables, cex.axis = tick.size)
     axis(2, at = y_ticks, labels = y_ticks_lables, cex.axis = tick.size)
   }else{
-    axis(1, at = x_ticks, labels = x_ticks_lables, tck = 0)
-    axis(2, at = y_ticks, labels = y_ticks_lables, tck = 0)
+    axis(1, at = x_ticks, labels = x_ticks_lables, tck = 0, cex.axis = tick.size)
+    axis(2, at = y_ticks, labels = y_ticks_lables, tck = 0, cex.axis = tick.size)
   }
   
   if (length(palette) == 0){
@@ -551,7 +551,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
   return(compiledList)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
   
   rayIncrement = 3.14159/180 * interval
   

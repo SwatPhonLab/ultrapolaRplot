@@ -403,7 +403,7 @@ my_palette1 <- c(
   "#FFCCCC", "#E6CCFF", "#CCE6FF"    # Lighter Red, Lighter Purple, Lighter Blue
 )
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -509,8 +509,8 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     axis(1, at = x_ticks, labels = x_ticks_lables, cex.axis = tick.size)
     axis(2, at = y_ticks, labels = y_ticks_lables, cex.axis = tick.size)
   }else{
-    axis(1, at = x_ticks, labels = x_ticks_lables, tck = 0)
-    axis(2, at = y_ticks, labels = y_ticks_lables, tck = 0)
+    axis(1, at = x_ticks, labels = x_ticks_lables, tck = 0, cex.axis = tick.size)
+    axis(2, at = y_ticks, labels = y_ticks_lables, tck = 0, cex.axis = tick.size)
   }
   
   if (length(palette) == 0){
@@ -623,7 +623,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
 ```
 
 ```{r}
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
   
   rayIncrement = 3.14159/180 * interval
   
@@ -648,7 +648,7 @@ myXY_data
 ```
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.algorithm = "BottomMean", scaling.factor = 592/412)
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 2, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, plot.ticks = TRUE, legend.size = 1.2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3)#, png.filename = "ok4.png")
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 2, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, legend.size = 1.2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3)#, png.filename = "ok4.png")
 ```
 Set1, png resolution, topleft, tiername bug
 
