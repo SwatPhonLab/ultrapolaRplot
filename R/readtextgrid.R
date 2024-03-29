@@ -34,7 +34,7 @@ read_textgrid <- function(path, file = NULL, encoding = NULL) {
 #' @rdname read_textgrid
 #' @export
 read_textgrid_lines <- function(lines, file = NULL) {
-  print(file)
+  #print(file)
   if (is.null(file)) {
     file <- NA_character_
   }
@@ -82,7 +82,7 @@ slice_sections <- function(lines, section_head) {
 
 
 parse_item_lines <- function(lines_items) {
-  print(lines_items)
+  #print(lines_items)
   item_num <- lines_items[1] |>
     stringr::str_extract("\\d+") |>
     as.numeric()
