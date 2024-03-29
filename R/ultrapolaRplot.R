@@ -57,14 +57,21 @@ loadTraces <- function(directory_name, tiername = "", categories = c()){
       #time to parse
       intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
       if (nchar(tiername)!=0){
-        intervalData <- intervalData[intervalData$tier_name == tiername,]
+        if (tiername %in% intervalData$tier_name){
+          intervalData <- intervalData[intervalData$tier_name == tiername,]
+        }else{ #you have annotation, but not in the proper tier
+          print("skipping this textgrid file, as annotations are not in the proper tier")
+          print(plainTextname)
+          next
+        }
       }
-      #limits to the tier that actually has annotations, for speed
-      #doesn't work actually for large datasets...
+      # if (nchar(tiername)!=0){
+      #   intervalData <- intervalData[intervalData$tier_name == tiername,]
+      # }
       
       if (length(categories) == 0){ #read all segments
         #intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
-        intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything
+        intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything, that is not a blank space
       } else { #specific categories specified
         intervalData <- intervalData[intervalData$text %in% categories, ]
       }
@@ -322,7 +329,7 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "center", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -414,7 +421,7 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   }
   
   if (length(png.filename)!=0){
-    png(filename = png.filename, width = 1700*(plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 1700 * (plotbounds[[4]] - plotbounds[[3]] -0.05), units = "px")
+    png(filename = png.filename, width = 4000*(plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 4000 * (plotbounds[[4]] - plotbounds[[3]] -0.05), units = "px")
   }
   
   
@@ -434,7 +441,7 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   
   if (length(palette) == 0){
     numberOfColors <- length(uniqueSegments) + 2
-    paletteColors <- (brewer.pal(numberOfColors, "RdBu"))[2:numberOfColors] #PuRd nice
+    paletteColors <- (brewer.pal(numberOfColors, "Set1"))[2:numberOfColors] #PuRd nice
     
   }else{
     paletteColors <- palette
@@ -501,7 +508,7 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
       legend("center", legend = uniqueSegments,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     } else if (legend.position == "topleft"){
       # legend(plotbounds[[1]], plotbounds[[4]], legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
-      legend("topleft", inset = 0.5, legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+      legend("topleft", legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     }else if (legend.position == "bottomright"){
       # legend((xPlotAverage + .5*plotbounds[[2]]), yPlotAverage,  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol = round(length(uniqueSegments)/5))
       legend("bottomright",  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
@@ -533,7 +540,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
   return(compiledList)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "center", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = TRUE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
   
   rayIncrement = 3.14159/180 * interval
   
