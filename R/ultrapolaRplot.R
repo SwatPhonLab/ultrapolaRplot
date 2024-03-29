@@ -120,7 +120,9 @@ loadTraces <- function(directory_name, tiername = "", categories = c()){
   
   #allRowsTextGrids
   #textTiers
-  
+  if (length(allRowsTextGrids)==0){
+    stop("the tiernames/categories that you specified either do not exist, or have zero traces")
+  }  
   for(frame in 1:length(allRowsTextGrids$frame)){
     frameNumber = (allRowsTextGrids$frame)[[frame]]
     plainTextname <- allRowsTextGrids$plainTextName[[frame]]

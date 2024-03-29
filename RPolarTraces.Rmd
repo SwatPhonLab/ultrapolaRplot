@@ -139,7 +139,9 @@ loadTraces <- function(directory_name, tiername = "", categories = c()){
 
   #allRowsTextGrids
   #textTiers
-
+  if (length(allRowsTextGrids)==0){
+    stop("the tiernames/categories that you specified either do not exist, or have zero traces")
+  }  
   for(frame in 1:length(allRowsTextGrids$frame)){
     frameNumber = (allRowsTextGrids$frame)[[frame]]
     plainTextname <- allRowsTextGrids$plainTextName[[frame]]
@@ -632,7 +634,7 @@ categories <- c("o","y", "e", "i")
 categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 #categories <- c("nʲ", "n")
 
-myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/ultrasound-data-RussianPalatals-202012/")
+myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/ultrasound-data-RussianPalatals-202012/", "cons2")
 myXY_data
 ```
 ```{r}
