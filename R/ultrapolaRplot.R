@@ -408,15 +408,19 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   if (length(pdf.filename)!=0){
     #pdf.options(encoding="MacRoman")
     #pdf.options(encoding = "utf-8")
-    cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22, height = 22)
+    cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05))
+    #cairo_pdf(file = pdf.filename, family = "DejaVu Serif")
+    # cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22, height = 22)
   }
   
   if (length(png.filename)!=0){
-    png(filename = png.filename, width = 1300, height = 1300, units = "px")
+    png(filename = png.filename, width = 1700*(plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 1700 * (plotbounds[[4]] - plotbounds[[3]] -0.05), units = "px")
   }
   
   
-  par(pty = "s")
+  #par(pty = "s")
+  par(mar = c(0, 4.4, 0, 1.25) + 2)
+  
   
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1, family = "DejaVu Serif", cex.axis = 20)
   

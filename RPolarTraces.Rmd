@@ -471,15 +471,19 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   if (length(pdf.filename)!=0){
      #pdf.options(encoding="MacRoman")
      #pdf.options(encoding = "utf-8")
-     cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22, height = 22)
+     cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05))
+    #cairo_pdf(file = pdf.filename, family = "DejaVu Serif")
+    # cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22, height = 22)
   }
   
    if (length(png.filename)!=0){
-      png(filename = png.filename, width = 1300, height = 1300, units = "px")
+      png(filename = png.filename, width = 1700*(plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 1700 * (plotbounds[[4]] - plotbounds[[3]] -0.05), units = "px")
   }
  
   
-  par(pty = "s")
+  #par(pty = "s")
+  par(mar = c(0, 4.4, 0, 1.25) + 2)
+  
   
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1, family = "DejaVu Serif", cex.axis = 20)
   
@@ -618,14 +622,20 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
 #directory_name <- "/Users/yayaorigami/Documents/plinguistics/IETestData"
 #directory_name <- "/Users/yayaorigami/Documents/plinguistics/ultrasound-data-RussianPalatals-202012/"
 categories <- c("o","y", "e", "i")
+categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 #categories <- c("nʲ", "n")
 
 myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/IETestData/")
 myXY_data
 ```
 ```{r}
-polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.algorithm = "BottomMiddle", scaling.factor = 592/412)
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, palette = my_palette1, legend.position = "bottomright", points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.3, mean.lines = TRUE, means.styles = c(1,2,2), plot.labels = TRUE, plot.ticks = TRUE, legend.size = 0.8, legend.linewidth = 2, means.linewidth = 1, tick.size = 1)
+polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.algorithm = "BottomMean", scaling.factor = 592/412)
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, palette = c(
+  "#FF3366", "#FF3366",
+  "#faacf5", "#faacf5", 
+  "#0000FF", "#0000FF",  
+  "#99BBFF", "#99BBFF"
+), legend.position = "bottomright", points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 2, 1, 1, 2, 1, 2), plot.labels = TRUE, plot.ticks = TRUE, legend.size = 1, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1, bands.linewidth = .3, pdf.filename = "ok4.pdf")
 ```
 Checking sizes IS A FUNCTION (that you will not be able to currently use)
 ```{r}
