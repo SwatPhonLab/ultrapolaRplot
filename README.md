@@ -60,7 +60,7 @@ plotTraces(rawTraces, polarTraces)
 
 ### Installing from CRAN
 
-Most users will want to install ultrapolaRplot this way.  Currently the library is not in CRAN, but submission is planned.
+Most users will want to install ultrapolaRplot this way.  Currently the library is not in CRAN, but has been submitted and is under review.
 
 ### Installing from source
 
