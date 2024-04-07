@@ -105,6 +105,7 @@ loadTraces <- function(directory_name, tiername = "", categories = c()){
       }
 
       fileNumber <- (intervalData$file)[1]
+      
 
       df <- intervalData
 
@@ -643,12 +644,18 @@ categories <- c("o","y", "e", "i")
 categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 #categories <- c("nʲ", "n")
 
-myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012/", "cons", c("n", "l"))
+myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3", tiername = "vowels", categories <- c('y'))
 myXY_data
 ```
 ```{r}
-polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.algorithm = "BottomMean", scaling.factor = 592/412)
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 2, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, legend.size = 1.2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3)#, png.filename = "ok4.png")
+unique(myXY_data$file_number)
+```
+
+```{r}
+polarTraces <- makeTracesPolar(myXY_data = myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = TRUE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 1, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, legend.size = 1.2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3, palette = c(
+  
+  "#FF3366"))#, png.filename = "ok4.png")
 ```
 Set1, png resolution, topleft, tiername bug
 
