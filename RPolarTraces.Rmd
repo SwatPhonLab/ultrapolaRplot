@@ -34,7 +34,7 @@ library(Cairo)
 ```{r}
 loadTraces <- function(directory_name, tiername = "", categories = c()){
 
-  metaDataFile <- paste(directory_name, "metadata.json", sep = "/") #is this an ok approach?
+  metaDataFile <- paste(directory_name, "metadata3.json", sep = "/") #is this an ok approach?
   #is it guaranteed that the meta file will be called metadata, and is in the same directory level
 
   if (!file.exists(metaDataFile)){
@@ -43,7 +43,8 @@ loadTraces <- function(directory_name, tiername = "", categories = c()){
 
   metaData <- fromJSON(file = metaDataFile)
 
-  traces_raw <- metaData$traces["Tongue"]
+  #traces_raw <- metaData$traces["Tongue"]
+  traces_raw <- metaData$traces["Palate"] #unnecessary
   filesAll <- metaData$files
 
   myXY_data <- data.frame()
@@ -644,18 +645,22 @@ categories <- c("o","y", "e", "i")
 categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 #categories <- c("nʲ", "n")
 
-myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3", tiername = "vowels", categories <- c('y'))
+myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3")
 myXY_data
 ```
 ```{r}
-unique(myXY_data$file_number)
+length(unique(myXY_data$file_number))
 ```
 
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data = myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = TRUE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 1, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, legend.size = 1.2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3, palette = c(
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 1, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, legend.size = 1.2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3, palette = c(
   
-  "#FF3366"))#, png.filename = "ok4.png")
+  "#FF3366", "#FF3366",
+  "#FF9999", "#FF9999", 
+  "#0000FF", "#0000FF",  
+  "#99BBFF", "#99BBFF"
+))#, png.filename = "ok4.png")
 ```
 Set1, png resolution, topleft, tiername bug
 

@@ -1,9 +1,9 @@
 Package: ultrapolaRplot
 Type: Package
 Title: Plotting Ultrasound Tongue Traces
-Version: 0.1.0
+Version: 0.1.1
 Author: Yana Outkin, Jonathan Washington
-Imports: RColorBrewer, tibble, dplyr, rjson, ggplot2, Cairo
+Imports: RColorBrewer, tibble, dplyr, rjson, ggplot2, Cairo, plyr, purrr, readr, stringr
 Maintainer Name: Yana Outkin
 Maintainer Email: <youtkin1@swarthmore.edu>
 Description: The ultrapolaRplot library for R is designed for plotting traced ultrasound tongue
@@ -11,11 +11,11 @@ Description: The ultrapolaRplot library for R is designed for plotting traced ul
     There is currently support for plotting means and standard deviations of each category's trace; 
     SSANOVA could be implemented as well.  The origin of the polar coordinates may be defined 
     manually or automatically determined based on different algorithms.
-    Currently ultrapolaRplot supports ultrasound tongue imaging trace data from [UltraTrace](https://
-    github.com/SwatPhonLab/UltraTrace).  UltraTrace is capable of importing data from Articulate 
-    Instruments AAA.
+    Currently ultrapolaRplot supports ultrasound tongue imaging trace data from [UltraTrace 
+    (<https:// github.com/SwatPhonLab/UltraTrace>).  UltraTrace is capable of importing data from 
+    Articulate Instruments AAA.
     read_textgrid.R is required for opening TextGrids to determine category and alignment information 
     of ultrasound traces.
-License: GPLv3
+License: GPL-3
 Encoding: UTF-8
 LazyData: true

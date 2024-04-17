@@ -44,15 +44,7 @@ Plotting options for plotTraces()
 }
 \examples{
 library(ultrapolaRplot)
-rawTraces <- loadTraces('../palatals/', 'cons')
+rawTraces <- loadTraces('./data/')
 polarTraces <- makeTracesPolar(rawTraces)
 plotTraces(rawTraces, polarTraces, pdf.filename="palatals.pdf")
-
-rawTraces <- loadTraces('../P03/', 'vowels', c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø'))
-polarTraces <- makeTracesPolar(rawTraces)
-plotTraces(rawTraces, polarTraces, 
-palette = c("#B30000", "#B30000",
-"#FF69B5", "#FF69B5", "#0000FF",
-"#0000FF", "#00D8FF", "#00D8FF"),
-legend.position = "bottomright", points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.2, mean.lines = TRUE, means.styles = c(2,1,2,1,1,2,1,2), plot.labels = TRUE, plot.ticks = TRUE, legend.size = 1, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1, bands.linewidth = 0.2, pdf.filename="P03.pdf")
 }
