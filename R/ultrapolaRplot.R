@@ -13,7 +13,7 @@
 #   Check Package:             'Cmd + Shift + E'
 #   Test Package:              'Cmd + Shift + T'
 
-loadTraces <- function(directory_name, tiername = "", categories = c()){
+loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list(c()), layersAll = c(""), mergeCategories = c(FALSE)){
   
   metaDataFile <- paste(directory_name, "metadata.json", sep = "/") #is this an ok approach?
   #is it guaranteed that the meta file will be called metadata, and is in the same directory level
@@ -23,145 +23,259 @@ loadTraces <- function(directory_name, tiername = "", categories = c()){
   }
   
   metaData <- fromJSON(file = metaDataFile)
-  
-  traces_raw <- metaData$traces["Tongue"]
   filesAll <- metaData$files
   
+  #type checking
+  #c("[]") already acts like a string "", so only need to check categoriesAll
+  
+  if (class(categoriesAll) == "character"){
+    categoriesAll <- list(categoriesAll)
+  }
+  
+  #some initial set-up
   myXY_data <- data.frame()
   column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y')
   myXY_data <- rbind(myXY_data, column_names)
   allRowsTextGrids <- list()
   
-  for (individualFile in 1:length(filesAll)){
-    #accessing text grid files
-    recording_name <- filesAll[[individualFile]]$.TextGrid
-    plainTextname <- filesAll[[individualFile]]$name
-    #used to access text grid files
-    fullFilePath <- file.path(directory_name, recording_name)
-    #print(fullFilePath)
+  #padding
+  for (i in 1:length(categoriesAll)){
+    if (length(tiernameAll) < length(categoriesAll)){
+      tiernameAll <- append(tiernameAll, tiernameAll[[1]])
+    }
+    if (length(layersAll) < length(categoriesAll)){
+      layersAll <- append(layersAll, layersAll[[1]]) #maybe edit later to layersAll[]
+    }
+    if (length(mergeCategories) < length(categoriesAll)){
+      mergeCategories <- append(mergeCategories, mergeCategories[[1]])
+    }
+  }
+  #beginning for loop
+  for (item in 1:length(categoriesAll)){
     
-    cur_recording <- metaData$traces$tongue$files[[(filesAll[[individualFile]]$name)]]
-    
-    if (is.null(cur_recording)){
-      listExists <- 0
+    #selecting layer level: future work be able to detect all, rather than setting tongue as default
+    if(layersAll[[item]]==""){
+      traces_raw <- metaData$traces[['tongue']]
     }else{
-      listExists <- max(unlist(lapply(metaData$traces$tongue$files[[(filesAll[[individualFile]]$name)]], length)))
+      traces_raw <- metaData$traces[[layersAll[[item]]]]
     }
     
-    #read text grid if it is not empty
-    if (listExists > 1){
-      #read in text grid data but only if recording > 0
-      #Reading Text Grid
-      errorCode = 0
-      tryCatch({
-        textGridDataFile <- read_textgrid(fullFilePath)
-      }, error = function(e){
-        print("cannot open textgrid")
-        errorCode = 1
-      })
-      if(errorCode==1){
-        next
-      }
+    #traces_raw <- metaData$traces[['palate']]
+    #traces_raw <- metaData$traces$tongue
+    
+    tiername = tiernameAll[[item]]
+    categories = categoriesAll[[item]]
+    
+    
+    
+    #if only metadata xy data
+    if (tiernameAll[[item]] == "" && length(categoriesAll[[item]]) == 1 && categoriesAll[[item]] == ""){ #order of logic matters
+      myXY_data <- rbind(myXY_data, tracesWithoutTier(metaDataFile, layersAll[[item]]))
       
-      #time to parse
-      intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
-      if (nchar(tiername)!=0){
-        if (tiername %in% intervalData$tier_name){
-          intervalData <- intervalData[intervalData$tier_name == tiername,]
-        }else{ #you have annotation, but not in the proper tier
-          print("skipping this textgrid file, as annotations are not in the proper tier")
-          print(plainTextname)
-          next
+    }else{ #actually open textgrids and check categories
+      for (individualFile in 1:length(filesAll)){
+        #accessing text grid files
+        recording_name <- filesAll[[individualFile]]$.TextGrid
+        plainTextname <- filesAll[[individualFile]]$name
+        #used to access text grid files
+        fullFilePath <- file.path(directory_name, recording_name)
+        #print(fullFilePath)
+        
+        #cur_recording <- metaData$traces$tongue$files[[(filesAll[[individualFile]]$name)]]
+        cur_recording <- traces_raw$files[[(filesAll[[individualFile]]$name)]]
+        
+        if (is.null(cur_recording)){
+          listExists <- 0
+        }else{
+          # listExists <- max(unlist(lapply(metaData$traces$tongue$files[[(filesAll[[individualFile]]$name)]], length)))
+          listExists <- max(unlist(lapply(traces_raw$files[[(filesAll[[individualFile]]$name)]], length)))
         }
-      }
-      # if (nchar(tiername)!=0){
-      #   intervalData <- intervalData[intervalData$tier_name == tiername,]
-      # }
-      
-      if (length(categories) == 0){ #read all segments
-        #intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
-        intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything, that is not a blank space
-      } else { #specific categories specified
-        intervalData <- intervalData[intervalData$text %in% categories, ]
-      }
-      
-      fileNumber <- (intervalData$file)[1]
-      
-      df <- intervalData
-      
-      #attaching midpoint and plainTextname for later textgrid access
-      df <- df %>% mutate(mid_point = (xmin + xmax)/2) #THIS IS FINE
-      df <- df %>% mutate(plainTextName = plainTextname)
-      
-      textTiers <-  textGridDataFile[textGridDataFile$tier_type == "TextTier",]
-      
-      if (nrow(df) > 0){
-        #1) using df min and max, isolate textTiers fragment
-        #2) out of fragment, find textTier closest to midpoint
-        frameNumberList <- list()
-        for (midpoint in 1:length(df$mid_point)){
-          min <- (df$xmin)[[midpoint]]
-          max <- df$xmax[[midpoint]]
-          textTierSection <- textTiers[textTiers$xmin >= min & textTiers$xmin <= max, ]
-          
-          if (nrow(textTierSection)!=0){
-            frameNumber <- (textTierSection[which.min(abs(textTierSection$xmin - df$mid_point[[midpoint]])), ])$text
-          }else{ #special case
-            frameNumber <- (textTiers[which.min(abs(textTiers$xmin - df$mid_point[[midpoint]])), ])$text
+        
+        #read text grid if it is not empty
+        if (listExists > 1){
+          #read in text grid data but only if recording > 0
+          #Reading Text Grid
+          errorCode = 0
+          tryCatch({
+            textGridDataFile <- read_textgrid(fullFilePath)
+          }, error = function(e){
+            print("cannot open textgrid")
+            errorCode = 1
+          })
+          if(errorCode==1){ #skip this file and move onto next
+            next
           }
-          frameNumberList = append(frameNumberList, frameNumber)
+          
+          #time to parse TIERS
+          intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
+          if (nchar(tiername)!=0){
+            if (tiername %in% intervalData$tier_name){
+              intervalData <- intervalData[intervalData$tier_name == tiername,]
+            }else{ #you have annotation, but not in the proper tier
+              print("skipping this textgrid file, as annotations are not in the proper tier")
+              print(plainTextname)
+              next
+            }
+          }
+          
+          #CATEGORIES
+          if (length(categories) == 0){ #read all segments
+            #intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
+            intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything, that is not a blank space
+          } else { #specific categories specified
+            intervalData <- intervalData[intervalData$text %in% categories, ]
+          }
+          
+          fileNumber <- (intervalData$file)[1]
+          
+          
+          df <- intervalData
+          
+          #attaching midpoint and plainTextname for later textgrid access
+          df <- df %>% mutate(mid_point = (xmin + xmax)/2) #THIS IS FINE
+          df <- df %>% mutate(plainTextName = plainTextname)
+          
+          textTiers <-  textGridDataFile[textGridDataFile$tier_type == "TextTier",]
+          
+          if (nrow(df) > 0){
+            #1) using df min and max, isolate textTiers fragment
+            #2) out of fragment, find textTier closest to midpoint
+            frameNumberList <- list()
+            for (midpoint in 1:length(df$mid_point)){
+              min <- (df$xmin)[[midpoint]]
+              max <- df$xmax[[midpoint]]
+              textTierSection <- textTiers[textTiers$xmin >= min & textTiers$xmin <= max, ]
+              
+              if (nrow(textTierSection)!=0){
+                frameNumber <- (textTierSection[which.min(abs(textTierSection$xmin - df$mid_point[[midpoint]])), ])$text
+              }else{ #special case
+                frameNumber <- (textTiers[which.min(abs(textTiers$xmin - df$mid_point[[midpoint]])), ])$text
+              }
+              frameNumberList = append(frameNumberList, frameNumber)
+            }
+            
+            frameNumberList <- unlist(frameNumberList)
+            df <- df %>% mutate(frame = frameNumberList)
+            
+            for (midpoint in 1:length(df$mid_point)){
+              allRowsTextGrids <- rbind(allRowsTextGrids, data.frame(df[midpoint,])) #necessary in case multiple text grid files
+            }
+          }
+        }else{
+          #print("skipping this textgrid file")
         }
         
-        frameNumberList <- unlist(frameNumberList)
-        df <- df %>% mutate(frame = frameNumberList)
+      }
+      #return(allRowsTextGrids)
+      #extract xy data separately once we have all the data
+      
+      for(frame in 1:length(allRowsTextGrids$frame)){
+        frameNumber = (allRowsTextGrids$frame)[[frame]]
+        plainTextname <- allRowsTextGrids$plainTextName[[frame]]
+        #xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
+        xyFileData <- traces_raw$files[[plainTextname]][[frameNumber]]
         
-        for (midpoint in 1:length(df$mid_point)){
-          allRowsTextGrids <- rbind(allRowsTextGrids, data.frame(df[midpoint,])) #necessary in case multiple text grid files
+        myFileAndFrameName <- paste(plainTextname, "_", frameNumber, sep = "")
+        myVowelType <- (allRowsTextGrids$text)[[frame]]
+        if (mergeCategories[[item]] == TRUE){
+          if (length(unlist(categories))!=0){
+            myVowelType <- paste(categories, collapse = "")
+          }else{
+            myVowelType <- "N/A" #or something else
+          }
+          
+        }
+        
+        if (length(xyFileData)>0){
+          for (mark in 1:length(xyFileData)){
+            itemNumber <- mark
+            xCoor <- xyFileData[[mark]]$x
+            yCoor <- xyFileData[[mark]]$y
+            
+            #build data.frame
+            appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor)
+            myXY_data <- rbind(myXY_data, appendedXYFrame)
+          }
         }
       }
-    }else{
-      #print("skipping this textgrid file")
-    }
-    
+      allRowsTextGrids <- list()
+    }  
   }
   
-  #extract xy data separately once we have all the data
-  
-  #allRowsTextGrids
+  #allRowsTextGrids extract x,y
   #textTiers
-  if (length(allRowsTextGrids)==0){
-    stop("the tiernames/categories that you specified either do not exist, or have zero traces")
-  }  
-  for(frame in 1:length(allRowsTextGrids$frame)){
-    frameNumber = (allRowsTextGrids$frame)[[frame]]
-    plainTextname <- allRowsTextGrids$plainTextName[[frame]]
-    xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
-    
-    myFileAndFrameName <- paste(plainTextname, "_", frameNumber, sep = "")
-    myVowelType <- (allRowsTextGrids$text)[[frame]]
-    
-    if (length(xyFileData)>0){
-      for (mark in 1:length(xyFileData)){
-        itemNumber <- mark
-        xCoor <- xyFileData[[mark]]$x
-        yCoor <- xyFileData[[mark]]$y
-        
-        #build data.frame
-        appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor)
-        myXY_data <- rbind(myXY_data, appendedXYFrame)
-      }
-    }
+  # countOfNonCategories <- sum(unlist(categoriesAll) == "")
+  # if (countOfNonCategories == length(categoriesAll)){ #categories are not specified, won't be anything in allRowsTextGrids
+  #   print("no categories have been specified")
+  # }else{
+  #   if (length(allRowsTextGrids)==0){
+  #     stop("the tiernames/categories that you specified either do not exist, or have zero traces")
+  #     
+  #   }else{ #extract xy data using allRowsTextGrids
+  #     
+  # 
+  #   } 
+  # }
+  
+  #CLEAN UP
+  if (unlist(myXY_data[1,3]) == "segment"){
+    myXY_data <- myXY_data[-1, ] #delete the heading that is in row 1
   }
-  colnames(myXY_data) <- myXY_data[1, ] #replace auto generated heading
-  myXY_data <- myXY_data[-1, ] #delete the heading that is in row 1
+  colnames(myXY_data) <- column_names #replace auto generated heading
   myXY_data[ ,4] <- as.numeric(myXY_data[ ,4]) #x, y are ints for graphing
   myXY_data[ ,5] <- as.numeric(myXY_data[ ,5])
   
   #a[order(factor(a$x, levels = reference)),] #sorting given user input
-  if (length(categories) != 0){
-    myXY_data = myXY_data[order(factor(myXY_data$segment, levels = categories)), ]
+  # if (length(unlist(categoriesAll)) > 0 && max(lapply(categoriesAll, nchar)!=0)){
+  #     myXY_data <- myXY_data[order(factor(myXY_data$segment, levels = unlist(categoriesAll))), ]
+  # }
+  return(myXY_data)
+}
+
+tracesWithoutTier <- function(metaDataFilePath, layerName){
+  #length(unique(myXY_data$file_number))
+  metaData <- fromJSON(file = metaDataFilePath)
+  #fileName <- metaData$files[[38]]$name
+  #9
+  #getting #2 
+  filenamexy <- list()
+  xvalues <- list()
+  yvalues <- list()
+  myXY_data <- data.frame()
+  column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y')
+  myXY_data <- rbind(myXY_data, column_names)
+  for (file in 1:length(metaData$files)){
+    fileName <- fileName <- metaData$files[[file]]$name
+    for (fileTrace in 1:length(metaData$traces[[layerName]]$files[fileName][[1]])){
+      if (length(metaData$traces[[layerName]]$files[fileName][[1]][[fileTrace]])>0){
+        filenamexy <- append(filenamexy, metaData$traces[[layerName]]$files[fileName][[1]][[fileTrace]])
+        #names(metaData$traces[['palate']]$files[[1]][1])
+        traceNumber <- names(metaData$traces[[layerName]]$files[fileName][[1]][fileTrace])
+        myFileAndFrameName <- paste(fileName, "_", traceNumber, sep = "")
+        
+        for (mark in 1:length(filenamexy)){
+          itemNumber <- mark
+          xCoor <- filenamexy[[mark]]$x
+          yCoor <- filenamexy[[mark]]$y
+          xvalues <- append(xvalues, xCoor)
+          yvalues <- append(yvalues, yCoor)
+          #build data.frame
+          #appendedXYFrame <- c(myFileAndFrameName, mark, layerName, yCoor, xCoor)
+          appendedXYFrame <- c(myFileAndFrameName, mark, layerName, yCoor, xCoor)
+          myXY_data <- rbind(myXY_data, appendedXYFrame)
+        }
+        filenamexy <- list()
+        xvalues <- list()
+        yvalues <- list()
+      }
+    }
+    #done getting xy in file
   }
   
+  # colnames(myXY_data) <- myXY_data[1, ] #replace auto generated heading
+  myXY_data <- myXY_data[-1, ] #delete the heading that is in row 1
+  # myXY_data[ ,4] <- as.numeric(myXY_data[ ,4]) #x, y are ints for graphing
+  # myXY_data[ ,5] <- as.numeric(myXY_data[ ,5])
   return(myXY_data)
 }
 
@@ -340,7 +454,7 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
+plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, maskCategories = c()){
   
   plotbounds <- identifyPlotBounds(compiledList)
   
@@ -516,13 +630,13 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     
     if (legend.position == "center"){
       # legend(xPlotAverage, yPlotAverage, legend = uniqueSegments,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
-      legend("center", legend = uniqueSegments,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+      legend("center", legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     } else if (legend.position == "topleft"){
       # legend(plotbounds[[1]], plotbounds[[4]], legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
-      legend("topleft", legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+      legend("topleft", legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     }else if (legend.position == "bottomright"){
       # legend((xPlotAverage + .5*plotbounds[[2]]), yPlotAverage,  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol = round(length(uniqueSegments)/5))
-      legend("bottomright",  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+      legend("bottomright",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     }
   }
   
@@ -551,7 +665,7 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
   return(compiledList)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2){
+plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2, maskCategories = c()){
   
   rayIncrement = 3.14159/180 * interval
   
@@ -560,5 +674,5 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
   
   matrixIntersection <- find_intersection_with_ray(compiledList, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename, bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size)
+  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename, bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size, maskCategories = maskCategories)
 }
