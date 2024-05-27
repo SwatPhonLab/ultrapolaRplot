@@ -32,7 +32,7 @@ library(Cairo)
 ```
 
 ```{r}
-loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), categoriesAll = list(c())){
+loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list(c()), layersAll = c(""), mergeCategories = c(FALSE)){
   
   metaDataFile <- paste(directory_name, "metadata.json", sep = "/") #is this an ok approach?
   #is it guaranteed that the meta file will be called metadata, and is in the same directory level
@@ -44,6 +44,13 @@ loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), c
   metaData <- fromJSON(file = metaDataFile)
   filesAll <- metaData$files
   
+  #type checking
+  #c("[]") already acts like a string "", so only need to check categoriesAll
+  
+  if (class(categoriesAll) == "character"){
+    categoriesAll <- list(categoriesAll)
+  }
+  
   #some initial set-up
   myXY_data <- data.frame()
   column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y')
@@ -53,15 +60,19 @@ loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), c
   #padding
   for (i in 1:length(categoriesAll)){
     if (length(tiernameAll) < length(categoriesAll)){
-      tiernameAll <- append(tiernameAll, "")
+      tiernameAll <- append(tiernameAll, tiernameAll[[1]])
     }
     if (length(layersAll) < length(categoriesAll)){
-      layersAll <- append(layersAll, "")
+      layersAll <- append(layersAll, layersAll[[1]]) #maybe edit later to layersAll[]
+    }
+    if (length(mergeCategories) < length(categoriesAll)){
+      mergeCategories <- append(mergeCategories, mergeCategories[[1]])
     }
   }
-    
+  #beginning for loop
   for (item in 1:length(categoriesAll)){
     
+    #selecting layer level: future work be able to detect all, rather than setting tongue as default
     if(layersAll[[item]]==""){
       traces_raw <- metaData$traces[['tongue']]
     }else{
@@ -74,14 +85,13 @@ loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), c
     tiername = tiernameAll[[item]]
     categories = categoriesAll[[item]]
     
-    if (tiernameAll[[item]] == "" && length(categoriesAll[[item]]!=0) && categoriesAll[[item]] == ""){
+
+    
+    #if only metadata xy data
+    if (tiernameAll[[item]] == "" && length(categoriesAll[[item]]) == 1 && categoriesAll[[item]] == ""){ #order of logic matters
         myXY_data <- rbind(myXY_data, tracesWithoutTier(metaDataFile, layersAll[[item]]))
-        #colnames(myXY_data) <- myXY_data[1, ] #replace auto generated heading
-        #myXY_data <- myXY_data[-1, ] #delete the heading that is in row 1
-        # myXY_data[ ,4] <- as.numeric(myXY_data[ ,4]) #x, y are ints for graphing
-        # myXY_data[ ,5] <- as.numeric(myXY_data[ ,5])
-    }else{
-      
+        
+    }else{ #actually open textgrids and check categories
       for (individualFile in 1:length(filesAll)){
         #accessing text grid files
         recording_name <- filesAll[[individualFile]]$.TextGrid
@@ -111,11 +121,11 @@ loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), c
             print("cannot open textgrid")
             errorCode = 1
           })
-          if(errorCode==1){
+          if(errorCode==1){ #skip this file and move onto next
             next
           }
           
-          #time to parse
+          #time to parse TIERS
           intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
           if (nchar(tiername)!=0){
             if (tiername %in% intervalData$tier_name){
@@ -126,10 +136,8 @@ loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), c
               next
             }
           }
-          # if (nchar(tiername)!=0){
-          #   intervalData <- intervalData[intervalData$tier_name == tiername,]
-          # }
-    
+          
+          #CATEGORIES
           if (length(categories) == 0){ #read all segments
             #intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
             intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything, that is not a blank space
@@ -179,12 +187,7 @@ loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), c
       }
       #return(allRowsTextGrids)
       #extract xy data separately once we have all the data
-    
-      #allRowsTextGrids
-      #textTiers
-      if (length(allRowsTextGrids)==0){
-        stop("the tiernames/categories that you specified either do not exist, or have zero traces")
-      }  
+      
       for(frame in 1:length(allRowsTextGrids$frame)){
         frameNumber = (allRowsTextGrids$frame)[[frame]]
         plainTextname <- allRowsTextGrids$plainTextName[[frame]]
@@ -193,6 +196,14 @@ loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), c
     
         myFileAndFrameName <- paste(plainTextname, "_", frameNumber, sep = "")
         myVowelType <- (allRowsTextGrids$text)[[frame]]
+        if (mergeCategories[[item]] == TRUE){
+          if (length(unlist(categories))!=0){
+            myVowelType <- paste(categories, collapse = "")
+          }else{
+            myVowelType <- "N/A" #or something else
+          }
+          
+        }
     
         if (length(xyFileData)>0){
           for (mark in 1:length(xyFileData)){
@@ -206,9 +217,26 @@ loadTraces <- function(directory_name, layersAll = c(""), tiernameAll = c(""), c
           }
         }
       }
+      allRowsTextGrids <- list()
     }  
   }
 
+ #allRowsTextGrids extract x,y
+    #textTiers
+  # countOfNonCategories <- sum(unlist(categoriesAll) == "")
+  # if (countOfNonCategories == length(categoriesAll)){ #categories are not specified, won't be anything in allRowsTextGrids
+  #   print("no categories have been specified")
+  # }else{
+  #   if (length(allRowsTextGrids)==0){
+  #     stop("the tiernames/categories that you specified either do not exist, or have zero traces")
+  #     
+  #   }else{ #extract xy data using allRowsTextGrids
+  #     
+  # 
+  #   } 
+  # }
+    
+  #CLEAN UP
   if (unlist(myXY_data[1,3]) == "segment"){
     myXY_data <- myXY_data[-1, ] #delete the heading that is in row 1
   }
@@ -732,10 +760,11 @@ plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE,
 #directory_name <- "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012"
 categories <- c("o","y", "e", "i")
 categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
-#categories <- c("nʲ", "n")
-#append(list(c("")), c())[[2]]
-myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", layersAll = c('palate', 'tongue'), categoriesAll = list(c(""), c("n")))
+
+
+myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", "cons", list(c("ɫ","n"), c("lʲ", "nʲ")), mergeCategories = TRUE) #"ɫ", "lʲ", "n", "nʲ"
 myXY_data
+#does not crash if "cons" tier specified to palate, which is good
 
 ```
 
@@ -750,12 +779,12 @@ plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = F
 ))#, png.filename = "ok4.png")
 ```
 Set1, png resolution, topleft, tiername bug
-
+Merged n, l, categories:
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data = myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
 plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, legend.position = "topleft", plot.labels = TRUE, legend.size = 1.5, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3, plot.ticks = TRUE)
 ```
-
+```
 
 Checking sizes IS A FUNCTION (that you will not be able to currently use)
 ```{r}
