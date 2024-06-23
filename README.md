@@ -62,13 +62,18 @@ plotTraces(rawTraces, polarTraces)
 
 ### Installing from CRAN
 
-Most users will want to install ultrapolaRplot this way.  Currently the library is not in CRAN, but has been submitted and is under review.
+Most users will want to install ultrapolaRplot this way.
+
+```R
+install.packages ('ultrapolaRplot')
+```
 
 ### Installing from source
 
-To install the latest version of ultrapolaRplot from source, download the contents of this git repository locally, and install using the following command in R, replacing `/path/to/` with the absolute or relative path (directory) to the library:
+Most users will want to install ultrapolaRplot fromm CRAN, as above.  Installing from source is primarily useful for developers, or if you want the latest (unsupported) version of the code.
+
+To install the development version of ultrapolaRplot from source, download the contents of this git repository locally, and install using the following command in R, replacing `/path/to/` with the absolute or relative path (directory) to the library:
 
 ```R
 devtools::install("/path/to/ultrapolaRplot/")
 ```
-
