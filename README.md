@@ -6,6 +6,8 @@ There is currently support for plotting means and standard deviations of each ca
 
 Currently ultrapolaRplot supports ultrasound tongue imaging trace data from [UltraTrace](https://github.com/SwatPhonLab/UltraTrace).  UltraTrace is capable of importing data from Articulate Instruments AAA.
 
+**See [publications](https://github.com/SwatPhonLab/ultrapolaRplot-pubs) related to ultrapolaRplot**, currently our Ultrafest poster and extended abstract.  Be sure to cite them if you use ultrapolaRplot!
+
 
 ## Use
 
