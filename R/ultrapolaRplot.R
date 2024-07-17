@@ -13,7 +13,8 @@
 #   Check Package:             'Cmd + Shift + E'
 #   Test Package:              'Cmd + Shift + T'
 
-loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list(c()), layersAll = c(""), mergeCategories = c(FALSE)){
+loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list(c()), layersAll = c(""),
+                       mergeCategories = c(FALSE)){
   
   metaDataFile <- paste(directory_name, "metadata.json", sep = "/") #is this an ok approach?
   #is it guaranteed that the meta file will be called metadata, and is in the same directory level
@@ -28,14 +29,14 @@ loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list
   #type checking
   #c("[]") already acts like a string "", so only need to check categoriesAll
   
-  if (class(categoriesAll) == "character"){
+  if (inherits(categoriesAll, "character") || inherits(categoriesAll, "NULL")){
     categoriesAll <- list(categoriesAll)
   }
   
   #some initial set-up
-  myXY_data <- data.frame()
+  rawTraces <- data.frame()
   column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y')
-  myXY_data <- rbind(myXY_data, column_names)
+  rawTraces <- rbind(rawTraces, column_names)
   allRowsTextGrids <- list()
   
   #padding
@@ -69,8 +70,9 @@ loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list
     
     
     #if only metadata xy data
-    if (tiernameAll[[item]] == "" && length(categoriesAll[[item]]) == 1 && categoriesAll[[item]] == ""){ #order of logic matters
-      myXY_data <- rbind(myXY_data, tracesWithoutTier(metaDataFile, layersAll[[item]]))
+    if (tiernameAll[[item]] == "" && length(categoriesAll[[item]]) == 1 && categoriesAll[[item]] == ""){
+      #order of logic matters
+      rawTraces <- rbind(rawTraces, tracesWithoutTier(metaDataFile, layersAll[[item]]))
       
     }else{ #actually open textgrids and check categories
       for (individualFile in 1:length(filesAll)){
@@ -99,7 +101,7 @@ loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list
           tryCatch({
             textGridDataFile <- read_textgrid(fullFilePath)
           }, error = function(e){
-            print("cannot open textgrid")
+            message("cannot open textgrid")
             errorCode = 1
           })
           if(errorCode==1){ #skip this file and move onto next
@@ -112,16 +114,18 @@ loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list
             if (tiername %in% intervalData$tier_name){
               intervalData <- intervalData[intervalData$tier_name == tiername,]
             }else{ #you have annotation, but not in the proper tier
-              print("skipping this textgrid file, as annotations are not in the proper tier")
-              print(plainTextname)
+              message("skipping this textgrid file, as annotations are not in the proper tier")
+              message(plainTextname)
               next
             }
           }
           
           #CATEGORIES
           if (length(categories) == 0){ #read all segments
-            #intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] #just gets everything, n^j is two characters
-            intervalData <- intervalData[nchar(intervalData$text) !=0, ] #absolutely gets everything, that is not a blank space
+            #intervalData <- intervalData[nchar(intervalData$text) == 1 | nchar(intervalData$text) == 2, ] 
+            #just gets everything, n^j is two characters
+            intervalData <- intervalData[nchar(intervalData$text) !=0, ] 
+            #absolutely gets everything, that is not a blank space
           } else { #specific categories specified
             intervalData <- intervalData[intervalData$text %in% categories, ]
           }
@@ -132,7 +136,7 @@ loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list
           df <- intervalData
           
           #attaching midpoint and plainTextname for later textgrid access
-          df <- df %>% mutate(mid_point = (xmin + xmax)/2) #THIS IS FINE
+          df <- df %>% mutate(mid_point = (df$xmin + df$xmax)/2) #THIS IS FINE
           df <- df %>% mutate(plainTextName = plainTextname)
           
           textTiers <-  textGridDataFile[textGridDataFile$tier_type == "TextTier",]
@@ -194,7 +198,7 @@ loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list
             
             #build data.frame
             appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor)
-            myXY_data <- rbind(myXY_data, appendedXYFrame)
+            rawTraces <- rbind(rawTraces, appendedXYFrame)
           }
         }
       }
@@ -204,36 +208,24 @@ loadTraces <- function(directory_name, tiernameAll = c(""), categoriesAll = list
   
   #allRowsTextGrids extract x,y
   #textTiers
-  # countOfNonCategories <- sum(unlist(categoriesAll) == "")
-  # if (countOfNonCategories == length(categoriesAll)){ #categories are not specified, won't be anything in allRowsTextGrids
-  #   print("no categories have been specified")
-  # }else{
-  #   if (length(allRowsTextGrids)==0){
-  #     stop("the tiernames/categories that you specified either do not exist, or have zero traces")
-  #     
-  #   }else{ #extract xy data using allRowsTextGrids
-  #     
-  # 
-  #   } 
-  # }
   
   #CLEAN UP
-  if (unlist(myXY_data[1,3]) == "segment"){
-    myXY_data <- myXY_data[-1, ] #delete the heading that is in row 1
+  if (unlist(rawTraces[1,3]) == "segment"){
+    rawTraces <- rawTraces[-1, ] #delete the heading that is in row 1
   }
-  colnames(myXY_data) <- column_names #replace auto generated heading
-  myXY_data[ ,4] <- as.numeric(myXY_data[ ,4]) #x, y are ints for graphing
-  myXY_data[ ,5] <- as.numeric(myXY_data[ ,5])
+  colnames(rawTraces) <- column_names #replace auto generated heading
+  rawTraces[ ,4] <- as.numeric(rawTraces[ ,4]) #x, y are ints for graphing
+  rawTraces[ ,5] <- as.numeric(rawTraces[ ,5])
   
   #a[order(factor(a$x, levels = reference)),] #sorting given user input
   # if (length(unlist(categoriesAll)) > 0 && max(lapply(categoriesAll, nchar)!=0)){
-  #     myXY_data <- myXY_data[order(factor(myXY_data$segment, levels = unlist(categoriesAll))), ]
+  #     rawTraces <- rawTraces[order(factor(rawTraces$segment, levels = unlist(categoriesAll))), ]
   # }
-  return(myXY_data)
+  return(rawTraces)
 }
 
 tracesWithoutTier <- function(metaDataFilePath, layerName){
-  #length(unique(myXY_data$file_number))
+  #length(unique(rawTraces$file_number))
   metaData <- fromJSON(file = metaDataFilePath)
   #fileName <- metaData$files[[38]]$name
   #9
@@ -241,9 +233,9 @@ tracesWithoutTier <- function(metaDataFilePath, layerName){
   filenamexy <- list()
   xvalues <- list()
   yvalues <- list()
-  myXY_data <- data.frame()
+  rawTraces <- data.frame()
   column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y')
-  myXY_data <- rbind(myXY_data, column_names)
+  rawTraces <- rbind(rawTraces, column_names)
   for (file in 1:length(metaData$files)){
     fileName <- fileName <- metaData$files[[file]]$name
     for (fileTrace in 1:length(metaData$traces[[layerName]]$files[fileName][[1]])){
@@ -262,7 +254,7 @@ tracesWithoutTier <- function(metaDataFilePath, layerName){
           #build data.frame
           #appendedXYFrame <- c(myFileAndFrameName, mark, layerName, yCoor, xCoor)
           appendedXYFrame <- c(myFileAndFrameName, mark, layerName, yCoor, xCoor)
-          myXY_data <- rbind(myXY_data, appendedXYFrame)
+          rawTraces <- rbind(rawTraces, appendedXYFrame)
         }
         filenamexy <- list()
         xvalues <- list()
@@ -272,11 +264,11 @@ tracesWithoutTier <- function(metaDataFilePath, layerName){
     #done getting xy in file
   }
   
-  # colnames(myXY_data) <- myXY_data[1, ] #replace auto generated heading
-  myXY_data <- myXY_data[-1, ] #delete the heading that is in row 1
-  # myXY_data[ ,4] <- as.numeric(myXY_data[ ,4]) #x, y are ints for graphing
-  # myXY_data[ ,5] <- as.numeric(myXY_data[ ,5])
-  return(myXY_data)
+  # colnames(rawTraces) <- rawTraces[1, ] #replace auto generated heading
+  rawTraces <- rawTraces[-1, ] #delete the heading that is in row 1
+  # rawTraces[ ,4] <- as.numeric(rawTraces[ ,4]) #x, y are ints for graphing
+  # rawTraces[ ,5] <- as.numeric(rawTraces[ ,5])
+  return(rawTraces)
 }
 
 sortedOrder <- function(listX){ #Sort by angle
@@ -316,50 +308,50 @@ get_unique_segments <- function(extractedData){
   return(uniqueSegments)
 }
 
-identifyXAverage <- function(myXY_data){ #the x y axis are rotate left 90 degrees, so go based off x axis
-  xmin =  min(myXY_data[c(5)])
-  xmax =  max(myXY_data[c(5)])
-
+identifyXAverage <- function(rawTraces){ #the x y axis are rotate left 90 degrees, so go based off x axis
+  xmin =  min(rawTraces[c(5)])
+  xmax =  max(rawTraces[c(5)])
+  
   return((xmin + xmax)/2)
 }
 
-identifyPlotBounds <- function(compiledList){
+identifyPlotBounds <- function(polarTraces){
   xmin = 2
   xmax = -2
   ymin = 2
   ymax = -2
-
-  for (segment in 1:length(compiledList)){
-    for (trace in 1:length(compiledList[[segment]])){
-      tempxmin <- min(compiledList[[segment]][[trace]][1,])
-      tempxmax <- max(compiledList[[segment]][[trace]][1,])
-      tempymin <- min(compiledList[[segment]][[trace]][2,])
-      tempymax <- max(compiledList[[segment]][[trace]][2,])
-
+  
+  for (segment in 1:length(polarTraces)){
+    for (trace in 1:length(polarTraces[[segment]])){
+      tempxmin <- min(polarTraces[[segment]][[trace]][1,])
+      tempxmax <- max(polarTraces[[segment]][[trace]][1,])
+      tempymin <- min(polarTraces[[segment]][[trace]][2,])
+      tempymax <- max(polarTraces[[segment]][[trace]][2,])
+      
       if (tempxmin < xmin){
         xmin <- tempxmin
       }
-
+      
       if (tempxmax > xmax){
         xmax <- tempxmax
       }
-
+      
       if (tempymin < ymin){
         ymin <- tempymin
       }
-
+      
       if (tempymax > ymax){
         ymax <- tempymax
       }
     }
-
+    
   }
-
+  
   return(c(xmin, xmax, ymin, ymax))
 }
 
 formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, scaling.factor = 800/600){
-  compiledList <- list()
+  polarTraces <- list()
   
   for (segment in 1:length(dataOfEachCurveNNj)){
     listofarrays <- list()
@@ -369,7 +361,8 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
       myCurveMatrix <- matrix(0, nrow = n_rows, ncol = n_cols) #each individual 2D array
       
       #adjusted x and y values around the center
-      xvalues <- (dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] * scaling.factor) - (origin.x*scaling.factor) #include parameter for aspect ratio
+      xvalues <- (dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] * scaling.factor) - (origin.x*scaling.factor) 
+      #include parameter for aspect ratio
       yvalues <- 1 - dataOfEachCurveNNj[[segment]][[i]][c(4)][[1]]
       
       
@@ -398,65 +391,74 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
       
       listofarrays[[i]] <-myCurveMatrix
     }
-    compiledList[[uniqueSegments[[segment]]]] <- listofarrays
+    polarTraces[[uniqueSegments[[segment]]]] <- listofarrays
   }
-  return(compiledList)
+  return(polarTraces)
 }
 
-find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueSegments, rayIncrement){ #ie compiledList
-
+find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueSegments, rayIncrement){ 
+  #ie polarTraces
+  
   matrixIntersection <- list()
-
+  
   #start set up unique segment
   for (segment in 1:length(uniqueSegments)){
     matrixIntersection[[uniqueSegments[[segment]]]] <- matrix(NA, nrow = length(formatedData[[segment]]), ncol = (3.14/rayIncrement))
   }
   #end set up
-
+  
   #for each extending radius
   for (angleRay in seq(from=0, to= 3.14, by= rayIncrement)){
-
+    
     for (segment in 1:length(uniqueSegments)){ #and for each segment
-
-      for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment (alphabetical??)
-
-        for (individualPoint in 1:(length(formatedData[[segment]][[individualTrace]][1, all()])-1)){ #for each point on the trace, find intersection
+      
+      for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ 
+        #for each trace in the segment (alphabetical??)
+        
+        for (individualPoint in 1:(length(formatedData[[segment]][[individualTrace]][1, all()])-1)){
+          #for each point on the trace, find intersection
           #find the right two points the angle falls between for each individual trace
-
+          
           if (angleRay <= formatedData[[segment]][[individualTrace]][3, individualPoint +1]){
             if (angleRay >= formatedData[[segment]][[individualTrace]][3, individualPoint]){
-
+              
               #print("found intersection with the following ray angle")
-
+              
               myIntersection <- calculateIntersection2(
-
+                
                 (formatedData[[segment]][[individualTrace]][4,individualPoint]),
                 (formatedData[[segment]][[individualTrace]][4,individualPoint + 1]),
                 (formatedData[[segment]][[individualTrace]][3,individualPoint]),
                 angleRay,
                 (formatedData[[segment]][[individualTrace]][3,individualPoint + 1])
-
+                
               )
-
+              
               #store value
               matrixIntersection[[segment]][[individualTrace, angleRay/rayIncrement]] <- myIntersection
               break
             }
           }
-
+          
         }
-
+        
       } #end individual trace for loop
-
+      
     } #end segment for loop
-
+    
   } #end angle ray for loop
   return(matrixIntersection) # columns for rays
 }
 
-plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj, uniqueSegments, palette = c(), rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(), bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, maskCategories = c()){
+plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
+                            rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(),
+                            bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", 
+                            standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
+                            plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
+                            bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
+                            maskCategories = c()){
   
-  plotbounds <- identifyPlotBounds(compiledList)
+  plotbounds <- identifyPlotBounds(polarTraces)
   
   standardDeviation <- list()
   averagedRX <- list()
@@ -469,7 +471,8 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     standardDeviation[[uniqueSegments[[segment]]]] <- list()
     
     for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
-      if (!is.na(colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]])){ #as long as there is a mean for each column, store the value
+      if (!is.na(colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]])){ 
+        #as long as there is a mean for each column, store the value
         averagedRX[[segment]] <- append(averagedRX[[segment]], cos(rayIncrement*ray) * colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]] )
         averagedRY[[segment]] <- append(averagedRY[[segment]], sin(rayIncrement*ray) * colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]] )
         standardDeviation[[segment]] <- append(standardDeviation[[segment]], sd(matrixIntersection[[segment]][all(), ray], na.rm = TRUE))
@@ -540,7 +543,7 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   if (length(pdf.filename)!=0){
     #pdf.options(encoding="MacRoman")
     #pdf.options(encoding = "utf-8")
-    cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05))
+    cairo_pdf(filename = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05))
     #cairo_pdf(file = pdf.filename, family = "DejaVu Serif")
     # cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22, height = 22)
   }
@@ -550,8 +553,11 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   }
   
   
+  oldpar <- par(no.readonly = TRUE)
+  on.exit(par(oldpar))
   #par(pty = "s")
   par(mar = c(0, 4.4, 0, 1.25) + 2)
+  
   
   
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1, family = "DejaVu Serif", cex.axis = 20)
@@ -596,8 +602,8 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
       polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor(paletteColors[[segment]], alpha.f = transparency), border = NA)
     }
     
-    if (length(means.styles) < length(compiledList)){
-      for (i in 1:(length(compiledList) - length(means.styles))){
+    if (length(means.styles) < length(polarTraces)){
+      for (i in 1:(length(polarTraces) - length(means.styles))){
         means.styles = append(means.styles, 1)
       }
     }
@@ -611,8 +617,8 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     }
     
     if (points.display){
-      for (trace in 1:length(compiledList[[segment]])){
-        points(compiledList[[segment]][[trace]][1, all()], compiledList[[segment]][[trace]][2, all()], type = "p", col = paletteColors[[segment]], asp = 1)
+      for (trace in 1:length(polarTraces[[segment]])){
+        points(polarTraces[[segment]][[trace]][1, all()], polarTraces[[segment]][[trace]][2, all()], type = "p", col = paletteColors[[segment]], asp = 1)
       }
     }
     
@@ -646,11 +652,11 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
   
 }
 
-makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600){
+makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600){
   
-  uniqueSegments <- get_unique_segments(myXY_data)
-  dataOfEachCurveNNj <- read_in_data(myXY_data)
-  xaverage <- identifyXAverage(myXY_data)
+  uniqueSegments <- get_unique_segments(rawTraces)
+  dataOfEachCurveNNj <- read_in_data(rawTraces)
+  xaverage <- identifyXAverage(rawTraces)
   
   
   if (origin.algorithm == "BottomMiddle"){
@@ -661,18 +667,31 @@ makeTracesPolar <- function(myXY_data, origin.algorithm = "BottomMiddle", origin
     origin.x = xaverage
   }
   
-  compiledList <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x, scaling.factor = scaling.factor)
-  return(compiledList)
+  polarTraces <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x, scaling.factor = scaling.factor)
+  return(polarTraces)
 }
 
-plotTraces <- function(myXY_data, compiledList, interval = 1, mean.lines = TRUE, points.display = FALSE, palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft", means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3, png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2, maskCategories = c()){
+plotTraces <- function(rawTraces, polarTraces, interval = 1, mean.lines = TRUE, points.display = FALSE,
+                       palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft",
+                       means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE,
+                       legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
+                       png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
+                       maskCategories = c()){
   
   rayIncrement = 3.14159/180 * interval
   
-  uniqueSegments <- get_unique_segments(myXY_data)
-  dataOfEachCurveNNj <- read_in_data(myXY_data)
+  uniqueSegments <- get_unique_segments(rawTraces)
+  dataOfEachCurveNNj <- read_in_data(rawTraces)
   
-  matrixIntersection <- find_intersection_with_ray(compiledList, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
+  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  plotStyleTraces(matrixIntersection = matrixIntersection, compiledList = compiledList, dataOfEachCurve = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display, palette = palette, bands.lines = bands.lines, legend.position = legend.position, bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles, plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename, bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size, maskCategories = maskCategories)
+  plotStyleTraces(matrixIntersection = matrixIntersection, polarTraces = polarTraces, 
+                  dataOfEachCurveNNj = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, 
+                  rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display,
+                  palette = palette, bands.lines = bands.lines, legend.position = legend.position, 
+                  bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles,
+                  plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename,
+                  bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
+                  legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
+                  maskCategories = maskCategories)
 }
