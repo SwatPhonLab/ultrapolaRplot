@@ -28,7 +28,6 @@ library(Cairo)
 #font_import()
 # Load the DejaVu Sans font family
 #loadfonts()
-
 ```
 
 ```{r}
@@ -419,7 +418,7 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
       
       #adjusted x and y values around the center
       xvalues <- (dataOfEachCurveNNj[[segment]][[i]][c(5)][[1]] * scaling.factor) - (origin.x*scaling.factor) #include parameter for aspect ratio
-      yvalues <- 1 - dataOfEachCurveNNj[[segment]][[i]][c(4)][[1]] 
+      yvalues <- 1 - dataOfEachCurveNNj[[segment]][[i]][c(4)][[1]]
       
       
       anglevalues <- list()
@@ -678,7 +677,7 @@ plotStyleTraces <- function(matrixIntersection, compiledList, dataOfEachCurveNNj
     
     if (points.display){
       for (trace in 1:length(compiledList[[segment]])){
-        points(compiledList[[segment]][[trace]][1, all()], compiledList[[segment]][[trace]][2, all()], type = "p", col = paletteColors[[segment]], asp = 1)
+        points(compiledList[[segment]][[trace]][1, all()], compiledList[[segment]][[trace]][2, all()], type = "P", col = paletteColors[[segment]], asp = 1)
       }
     }
     
@@ -762,15 +761,23 @@ categories <- c("o","y", "e", "i")
 categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 
 
-myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", "cons", list(c("ɫ","n"), c("lʲ", "nʲ")), mergeCategories = TRUE) #"ɫ", "lʲ", "n", "nʲ"
+# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012",categoriesAll  = list(c("ɫ","n"), c("lʲ", "nʲ"), c("")), layersAll = c('tongue','tongue','palate'), mergeCategories = TRUE) #"ɫ", "lʲ", "n", "nʲ"
+# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
+
+# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", tiernameAll = c("cons", ""), categoriesAll = list(c("n", "nʲ"), c("")), layersAll = c('tongue', 'palate'))
+
+ # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
+
+myXY_data <- loadTraces("~/Documents/plinguistics/Dataset3/", categoriesAll = list(c('u', 'ɯ', 'o', 'ɑ'), c('i', 'y', 'e', 'ø')), mergeCategories = TRUE)
+# #does not crash if "cons" tier specified to palate, which is good
 myXY_data
-#does not crash if "cons" tier specified to palate, which is good
+#inherits(c(), "NULL")
 
 ```
 
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data = myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 1, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, legend.size = 1.2, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3, palette = c(
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, means.styles =  c(2, 1, 1, 1, 1, 2, 1, 2), legend.position = "topleft", plot.labels = TRUE, legend.size = 1.0, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3, palette = c(
   
   "#FF3366", "#FF3366",
   "#FF9999", "#FF9999", 
@@ -778,13 +785,21 @@ plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = F
   "#99BBFF", "#99BBFF"
 ))#, png.filename = "ok4.png")
 ```
+```{r}
+polarTraces <- makeTracesPolar(myXY_data = myXY_data, origin.algorithm = "BottomMean")
+plotTraces(myXY_data = myXY_data, compiledList = polarTraces, legend.size = 1, palette = c(
+  
+  "#FF3366", "#0000FF"
+), maskCategories = c("back vowels: u, ɯ, o, ɑ", "front vowels: i, y, e, ø"), pdf.filename = "P03_combined.pdf", legend.position = "bottomright")
+#
+```
+```{r}
+polarTraces <-  makeTracesPolar(myXY_data = myXY_data, origin.algorithm = "BottomMean")
+plotTraces(myXY_data, polarTraces, palette = c("purple", "orange", "black"), maskCategories = c("ɫ, n", "lʲ, nʲ", "palate"), pdf.filename = "RusPal_alllevels.pdf")
+```
+
 Set1, png resolution, topleft, tiername bug
 Merged n, l, categories:
-```{r}
-polarTraces <- makeTracesPolar(myXY_data = myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
-plotTraces(myXY_data = myXY_data, compiledList = polarTraces, points.display = FALSE, bands.lines = TRUE, bands.fill = TRUE, transparency = 0.37, mean.lines = TRUE, legend.position = "topleft", plot.labels = TRUE, legend.size = 1.5, legend.linewidth = 1.5, means.linewidth = 1.5, tick.size = 1.2, bands.linewidth = .3, plot.ticks = TRUE, maskCategories = c("n and l", "nj and lj"))
-```
-```
 
 Checking sizes IS A FUNCTION (that you will not be able to currently use)
 ```{r}
