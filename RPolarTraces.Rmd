@@ -458,10 +458,10 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
     matrixIntersection[[uniqueSegments[[segment]]]] <- matrix(NA, nrow = length(formatedData[[segment]]), ncol = (3.14/rayIncrement))
   }
   #end set up
-  
+  count <- 0
    #for each extending radius
     for (angleRay in seq(from=0, to= 3.14, by= rayIncrement)){
-      
+      count <- count + 1
       for (segment in 1:length(uniqueSegments)){ #and for each segment
       
        for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment (alphabetical??)
@@ -483,9 +483,23 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
                                                                      (formatedData[[segment]][[individualTrace]][3,individualPoint + 1]) 
                                                                      
                                                                      )
-  
+               # if (count > 122 && count < 128){
+               #   print("reached problematic angle, intersection:")
+               #   print(myIntersection)
+               #   print("angle")
+               #   print(angleRay/rayIncrement)
+               # }
+              
+               if (is.na(myIntersection)){
+                 print("NA FOUND:", angleRay/rayIncrement)
+               }
                #store value
-               matrixIntersection[[segment]][[individualTrace, angleRay/rayIncrement]] <- myIntersection
+               #matrixIntersection[[segment]][[individualTrace, angleRay/rayIncrement]] <- myIntersection
+               matrixIntersection[[segment]][[individualTrace, count]] <- myIntersection
+               # if (count == 124 || count == 125 || count == 126){
+               #   print(angleRay/rayIncrement)
+               #   print(matrixIntersection[[segment]][[individualTrace, angleRay/rayIncrement]])
+               # }
                break
              }
            }
@@ -776,11 +790,14 @@ plotTraces <- function(rawTraces, polarTraces, interval = 1, mean.lines = TRUE, 
 categories <- c("o","y", "e", "i")
 categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 
+# myXY_data <- loadTraces("/Users/yayaorigami/Documents/plinguistics/IETestData", categoriesAll = c("o", "i"))
 
 # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012",categoriesAll  = list(c("ɫ","n"), c("lʲ", "nʲ"), c("")), layersAll = c('tongue','tongue','palate'), mergeCategories = TRUE) #"ɫ", "lʲ", "n", "nʲ"
 # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
 
 # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", tiernameAll = c("cons", ""), categoriesAll = list(c("n", "nʲ"), c("")), layersAll = c('tongue', 'palate'))
+
+# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", categoriesAll = list(c("n", "nʲ")))
 
  # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
 
@@ -790,6 +807,135 @@ myXY_data
 #inherits(c(), "NULL")
 
 ```
+```{r}
+polarTraces <- makeTracesPolar(myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
+plotTraces(myXY_data, polarTraces, interval = 1, legend.size = 1, plot.labels = TRUE, plot.ticks = TRUE, tick.size = 1)
+```
+Four traces each. So 4 by 4 per angle ray. 
+Intersections for each ray, with EACH curve -- should have that from matrixIntersection 
+```{r}
+rayIncrement = 3.14159/180 * 1 #30 degree for test
+  
+uniqueSegments <- get_unique_segments(myXY_data)
+dataOfEachCurveNNj <- read_in_data(myXY_data)
+  
+matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
+```
+
+For each ray angle (5), calculate all differences. Take mean, and standard deviation. 
+Two 1D lists
+
+```{r}
+differencePlot <- function(rawTraces, polarTraces, interval = 1){
+  rayIncrement = 3.14159/180 * interval #30 degree for test
+  uniqueSegments <- get_unique_segments(rawTraces)
+  dataOfEachCurveNNj <- read_in_data(rawTraces)
+    
+  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
+  
+  meanDifference <- list()
+  standardDeviation <- list()
+  redLine <- list()
+  rayIncrement <- 1
+  plotbounds <- identifyPlotBounds(polarTraces)
+  
+  for (ray in 1:length(matrixIntersection[[1]][1, all()])){
+    #[[1]] and [[2]] for matrixIntersection ONLY
+    if (!is.na(colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray]]) && !is.na(colMeans(matrixIntersection[[2]], na.rm = TRUE)[[ray]]) ){ 
+      #both are not empty... because no point taking difference of like 16.59 - NA right?
+      segment1 <- (matrixIntersection[[1]][all(), ray])[!is.na(matrixIntersection[[1]][all(), ray])]
+      segment2 <- (matrixIntersection[[2]][all(), ray])[!is.na(matrixIntersection[[2]][all(), ray])]
+  
+      differences <- list()
+      #4 by 4 x grid
+      for (item1 in 1:length(segment1)){
+        for (item2 in 1:length(segment2)){
+          differences <- append(differences, segment1[item1] - segment2[item2])
+        }
+      }
+      differences <- unlist(differences)
+      meanDifference <- append(meanDifference, mean(differences))
+      standardDeviation <- append(standardDeviation, sd(differences))
+      #what is proper scaling? 
+      redLine <- append(redLine, mean(differences)/(60*sd(differences)))
+    }else{
+      #for consistency when matching up with the angle loop
+      meanDifference <- append(meanDifference, NA)
+      standardDeviation <- append(standardDeviation, NA)
+      redLine <- append(redLine, NA)
+      
+    }
+    differences <- list() #reset/clear for next angle ray
+  }
+  meanX <- list()
+  for (ray in 1:length(matrixIntersection[[1]][1, all()])){
+    meanX <- append(meanX, cos(rayIncrement*ray * pi/180))
+  }
+  #plot label should be this cos converted to degrees.
+  #so times 180/pi
+  
+  xSDHigh <- list()
+  xSDLow <- list()
+  ySDHigh <- list()
+  ySDLow <- list()  
+
+  for (ray in 1:length(matrixIntersection[[1]][1, all()])){
+  
+    xSDHigh<- append(xSDHigh, cos(rayIncrement*ray*pi/180)*(standardDeviation[[ray]]) + meanX[[ray]])
+    xSDLow <-  append(xSDLow, cos(rayIncrement*ray*pi/180)*(-standardDeviation[[ray]]) + meanX[[ray]])
+  
+    ySDHigh <- append(ySDHigh, sin(rayIncrement*ray*pi/180)*(meanDifference[[ray]] + standardDeviation[[ray]]))
+    ySDLow <-  append(ySDLow, sin(rayIncrement*ray*pi/180)*(meanDifference[[ray]] - standardDeviation[[ray]]))
+    
+  }
+  
+  x1 <- rev(unlist(lapply(xSDLow, function(x) na.omit(x)), recursive = TRUE))
+  y1 <- rev(unlist(lapply(ySDLow, function(x) na.omit(x)), recursive = TRUE))
+  
+  
+  x2 <- rev(unlist(lapply(xSDHigh, function(x) na.omit(x)), recursive = TRUE))
+  y2 <- rev(unlist(lapply(ySDHigh, function(x) na.omit(x)), recursive = TRUE))
+    
+  
+  # labelsList <- c(round(min(x1)*180/pi), round((min(x1) + max(x2)/2)*180/pi), round(max(x2)*180/pi))
+  # x_ticks <- c(round(plotbounds[[1]],2), round((plotbounds[[2]] + plotbounds[[1]])/2,2), round(plotbounds[[2]],2))
+  #meanDifference
+  
+  axisX2 <- list()
+  axisX2 <- lapply(meanX, function(x) round(x*180/pi))
+  axisX2 <- seq(1,length(matrixIntersection[[1]][1,all()]), interval)
+  #axisX2 <- lapply(axisX2, function(x) -(x-90))
+  axisX <- lapply(lapply(meanX, function(x) x*180/pi), function(x) round(x))
+  
+  secondYAxis <- seq(min(y1), max(y2), (max(y2) - min(y1))/6)
+  secondYAxisLabes <- lapply(secondYAxis, function(x) round(x*60,2))
+  
+  plot(meanX, meanDifference, type = "l", col = "blue", lwd = 2, ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", ylab = "mean difference")
+  axis(1, at = meanX, labels = axisX, tck = 0)
+  
+  axis(side=4, at = secondYAxis, labels=secondYAxisLabes, col="red", col.axis="black")
+  #mtext("z score", side = 4, line = 1.5)
+  lines(x1, y1, col = "blue", type = "l", lwd = 1)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
+  lines(x2, y2, col = "blue", type = "l", lwd = 1)
+  polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor( "blue", alpha.f = 0.37), border = NA)
+  lines(meanX, unlist(redLine), col = "red", lwd = 2)
+  abline(h=0.0, lty = 2)
+  abline(h=seq(min(y1), max(y2), (max(y2) - min(y1))/6), col="red", lty="dotted")
+  
+  indices <- which(unlist(redLine) %in% min(unlist(redLine), na.rm = TRUE))
+  #print(redLine[[indices]])
+  abline(v = unlist(meanX)[[indices]], col = "red")
+  
+  indices <- which(unlist(redLine) %in% max(unlist(redLine), na.rm = TRUE))
+  print(redLine[[indices]])
+  abline(v = unlist(meanX)[[indices]], col = "red")
+  
+}
+cairo_pdf("testingDifferencePlot.pdf")
+differencePlot(myXY_data, polarTraces)
+dev.off()
+```
+
 
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data = myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
