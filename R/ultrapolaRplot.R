@@ -271,6 +271,188 @@ tracesWithoutTier <- function(metaDataFilePath, layerName){
   return(rawTraces)
 }
 
+loadAllTraces <- function(directory_name){
+  
+  metaDataFile <- paste(directory_name, "metadata.json", sep = "/") 
+  if (!file.exists(metaDataFile)){
+    stop("metadata file does not exist in given directory")
+  }
+  
+  metaData <- fromJSON(file = metaDataFile)
+  filesAll <- metaData$files
+  
+  #some initial set-up
+  rawTraces <- data.frame()
+  column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y')
+  rawTraces <- rbind(rawTraces, column_names)
+  allRowsTextGrids <- list()
+  
+  #beginning for loop
+  #but now, you don't know categoriesAll!
+  #replace with layer loop
+  for (item in 1:length(metaData$traces)){
+    #item, instead of 'tongue' or 'palate'
+    traces_raw <- metaData$traces[[item]]
+    
+    for (individualFile in 1:length(filesAll)){
+      #accessing text grid files
+      recording_name <- filesAll[[individualFile]]$.TextGrid
+      plainTextname <- filesAll[[individualFile]]$name
+      #used to access text grid files
+      fullFilePath <- file.path(directory_name, recording_name)
+      
+      cur_recording <- traces_raw$files[[(filesAll[[individualFile]]$name)]]
+      
+      if (is.null(cur_recording)){
+        listExists <- 0
+      }else{
+        listExists <- max(unlist(lapply(traces_raw$files[[(filesAll[[individualFile]]$name)]], length)))
+      }
+      
+      #read text grid if, there are some annotations
+      #ok, and then if text grid crashes... still get it, but label it as layer name?? only. 
+      if (listExists > 1){
+        errorCode = 0
+        #read in text grid data but only if recording > 0
+        #Reading Text Grid
+        tryCatch({
+          textGridDataFile <- read_textgrid(fullFilePath)
+        }, error = function(e){
+          errorCode = 1
+          message("cannot open textgrid")
+          message(plainTextname)
+          
+          if(errorCode==1){ 
+            #there is an error opening the TextGrid. #therefore, get the xy data from this file, and label with layer name...
+            #just add xy data immediately to rawTraces?
+            filenamexy <- list()
+            xvalues <- list()
+            yvalues <- list()
+            for (fileTrace in 1:length(cur_recording)){
+              if (length(cur_recording[[fileTrace]])>0){
+                filenamexy <- append(filenamexy, cur_recording[[fileTrace]])
+                traceNumber <- names(cur_recording[fileTrace])
+                layer <- names(metaData$traces[item])
+                myFileAndFrameName <- paste(plainTextname, "_", traceNumber, sep = "")
+                
+                for (mark in 1:length(filenamexy)){
+                  itemNumber <- mark
+                  xCoor <- filenamexy[[mark]]$x
+                  yCoor <- filenamexy[[mark]]$y
+                  xvalues <- append(xvalues, xCoor)
+                  yvalues <- append(yvalues, yCoor)
+                  rawTraces <<- rbind(rawTraces, c(myFileAndFrameName, mark, layer, yCoor, xCoor))
+                }
+                filenamexy <- list()
+                xvalues <- list()
+                yvalues <- list()
+              }
+            }
+            
+          }
+          #next section is actually looking at TextGrid
+        })
+        
+        if(errorCode==1){ #skip this file and move onto next
+          #doesn't even do anything
+          next
+        }
+        
+        #time to parse TIERS
+        intervalData <- textGridDataFile[textGridDataFile$tier_type == "IntervalTier", ]
+        intervalData <- intervalData[nchar(intervalData$text) !=0, ] 
+        
+        fileNumber <- (intervalData$file)[1]
+        
+        
+        df <- intervalData
+        
+        #attaching midpoint and plainTextname for later textgrid access
+        df <- df %>% mutate(mid_point = (df$xmin + df$xmax)/2) #THIS IS FINE
+        df <- df %>% mutate(plainTextName = plainTextname)
+        
+        textTiers <-  textGridDataFile[textGridDataFile$tier_type == "TextTier",]
+        
+        if (nrow(df) > 0){
+          #1) using df min and max, isolate textTiers fragment
+          #2) out of fragment, find textTier closest to midpoint
+          frameNumberList <- list()
+          for (midpoint in 1:length(df$mid_point)){
+            min <- (df$xmin)[[midpoint]]
+            max <- df$xmax[[midpoint]]
+            textTierSection <- textTiers[textTiers$xmin >= min & textTiers$xmin <= max, ]
+            
+            if (nrow(textTierSection)!=0){
+              frameNumber <- (textTierSection[which.min(abs(textTierSection$xmin - df$mid_point[[midpoint]])), ])$text
+            }else{ #special case
+              frameNumber <- (textTiers[which.min(abs(textTiers$xmin - df$mid_point[[midpoint]])), ])$text
+            }
+            frameNumberList = append(frameNumberList, frameNumber)
+          }
+          
+          frameNumberList <- unlist(frameNumberList)
+          df <- df %>% mutate(frame = frameNumberList)
+          
+          for (midpoint in 1:length(df$mid_point)){
+            allRowsTextGrids <- rbind(allRowsTextGrids, data.frame(df[midpoint,])) #necessary in case multiple text grid files
+          }
+        }
+        
+        
+      }
+    }
+    #return(allRowsTextGrids)
+    #extract xy data separately once we have all the data
+    
+    #this should be fine, not hard coded to 'tongue' as layer name
+    #print(names(metaData$traces[item]))
+    #print(length(allRowsTextGrids$frame))
+    if (length(allRowsTextGrids$frame) > 0){ #R should already be able to do this. 
+      for(frame in 1:length(allRowsTextGrids$frame)){
+        frameNumber = (allRowsTextGrids$frame)[[frame]]
+        plainTextname <- allRowsTextGrids$plainTextName[[frame]]
+        #xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
+        xyFileData <- traces_raw$files[[plainTextname]][[frameNumber]]
+        
+        myFileAndFrameName <- paste(plainTextname, "_", frameNumber, sep = "")
+        myVowelType <- (allRowsTextGrids$text)[[frame]]
+        
+        
+        if (length(xyFileData)>0){
+          for (mark in 1:length(xyFileData)){
+            itemNumber <- mark
+            xCoor <- xyFileData[[mark]]$x
+            yCoor <- xyFileData[[mark]]$y
+            
+            #build data.frame
+            appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor)
+            rawTraces <- rbind(rawTraces, appendedXYFrame)
+          }
+        }
+      } 
+    }
+    allRowsTextGrids <- list()
+  }
+  
+  #allRowsTextGrids extract x,y
+  #textTiers
+  
+  #CLEAN UP
+  if (unlist(rawTraces[1,3]) == "segment"){
+    rawTraces <- rawTraces[-1, ] #delete the heading that is in row 1
+  }
+  colnames(rawTraces) <- column_names #replace auto generated heading
+  rawTraces[ ,4] <- as.numeric(rawTraces[ ,4]) #x, y are ints for graphing
+  rawTraces[ ,5] <- as.numeric(rawTraces[ ,5])
+  
+  #a[order(factor(a$x, levels = reference)),] #sorting given user input
+  # if (length(unlist(categoriesAll)) > 0 && max(lapply(categoriesAll, nchar)!=0)){
+  #     rawTraces <- rawTraces[order(factor(rawTraces$segment, levels = unlist(categoriesAll))), ]
+  # }
+  return(rawTraces)
+}
+
+
 sortedOrder <- function(listX){ #Sort by angle
   order_x <- order(listX)
   return(order_x)
