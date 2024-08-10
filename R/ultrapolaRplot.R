@@ -283,7 +283,7 @@ loadAllTraces <- function(directory_name){
   
   #some initial set-up
   rawTraces <- data.frame()
-  column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y')
+  column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiername', 'layername')
   rawTraces <- rbind(rawTraces, column_names)
   allRowsTextGrids <- list()
   
@@ -341,7 +341,8 @@ loadAllTraces <- function(directory_name){
                   yCoor <- filenamexy[[mark]]$y
                   xvalues <- append(xvalues, xCoor)
                   yvalues <- append(yvalues, yCoor)
-                  rawTraces <<- rbind(rawTraces, c(myFileAndFrameName, mark, layer, yCoor, xCoor))
+                  rawTraces <<- rbind(rawTraces, c(myFileAndFrameName, mark, layer, yCoor, xCoor, "", layer))
+                  #layer as segment name, used for plotting.
                 }
                 filenamexy <- list()
                 xvalues <- list()
@@ -370,6 +371,7 @@ loadAllTraces <- function(directory_name){
         #attaching midpoint and plainTextname for later textgrid access
         df <- df %>% mutate(mid_point = (df$xmin + df$xmax)/2) #THIS IS FINE
         df <- df %>% mutate(plainTextName = plainTextname)
+        df <- df %>% mutate(layerName =  names(metaData$traces[item]))
         
         textTiers <-  textGridDataFile[textGridDataFile$tier_type == "TextTier",]
         
@@ -377,6 +379,7 @@ loadAllTraces <- function(directory_name){
           #1) using df min and max, isolate textTiers fragment
           #2) out of fragment, find textTier closest to midpoint
           frameNumberList <- list()
+          
           for (midpoint in 1:length(df$mid_point)){
             min <- (df$xmin)[[midpoint]]
             max <- df$xmax[[midpoint]]
@@ -410,6 +413,8 @@ loadAllTraces <- function(directory_name){
     if (length(allRowsTextGrids$frame) > 0){ #R should already be able to do this. 
       for(frame in 1:length(allRowsTextGrids$frame)){
         frameNumber = (allRowsTextGrids$frame)[[frame]]
+        layerName = (allRowsTextGrids$layerName)[[frame]]
+        tierName = (allRowsTextGrids$tier_name)[[frame]]
         plainTextname <- allRowsTextGrids$plainTextName[[frame]]
         #xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
         xyFileData <- traces_raw$files[[plainTextname]][[frameNumber]]
@@ -425,7 +430,7 @@ loadAllTraces <- function(directory_name){
             yCoor <- xyFileData[[mark]]$y
             
             #build data.frame
-            appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor)
+            appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor, tierName, layerName)
             rawTraces <- rbind(rawTraces, appendedXYFrame)
           }
         }
