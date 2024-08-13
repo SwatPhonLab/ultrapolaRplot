@@ -290,6 +290,9 @@ loadAllTraces <- function(directory_name){
   #beginning for loop
   #but now, you don't know categoriesAll!
   #replace with layer loop
+  
+  totalRows <- 1
+  
   for (item in 1:length(metaData$traces)){
     #item, instead of 'tongue' or 'palate'
     traces_raw <- metaData$traces[[item]]
@@ -336,12 +339,20 @@ loadAllTraces <- function(directory_name){
                 myFileAndFrameName <- paste(plainTextname, "_", traceNumber, sep = "")
                 
                 for (mark in 1:length(filenamexy)){
+                  totalRows <<- totalRows + 1
                   itemNumber <- mark
                   xCoor <- filenamexy[[mark]]$x
                   yCoor <- filenamexy[[mark]]$y
                   xvalues <- append(xvalues, xCoor)
                   yvalues <- append(yvalues, yCoor)
-                  rawTraces <<- rbind(rawTraces, c(myFileAndFrameName, mark, layer, yCoor, xCoor, "", layer))
+                  
+                  appendedFrame <- c(myFileAndFrameName, mark, layer, yCoor, xCoor, "", layer)
+                  for (anExtraSpace in 1:length(rawTraces[1,all()]) - 7){
+                    appendedFrame <- append(appendedFrame, NA) 
+                    #randomly looping around to add file name and item number
+                    #replace with NA, to make it clear
+                  }
+                  rawTraces <<- rbind(rawTraces, appendedFrame)
                   #layer as segment name, used for plotting.
                 }
                 filenamexy <- list()
@@ -410,12 +421,26 @@ loadAllTraces <- function(directory_name){
     #this should be fine, not hard coded to 'tongue' as layer name
     #print(names(metaData$traces[item]))
     #print(length(allRowsTextGrids$frame))
+    
     if (length(allRowsTextGrids$frame) > 0){ #R should already be able to do this. 
       for(frame in 1:length(allRowsTextGrids$frame)){
         frameNumber = (allRowsTextGrids$frame)[[frame]]
         layerName = (allRowsTextGrids$layerName)[[frame]]
         tierName = (allRowsTextGrids$tier_name)[[frame]]
         plainTextname <- allRowsTextGrids$plainTextName[[frame]]
+        
+        #indices of tiers it is nested in. only used if there is an actual annotation
+        #length(xyFileData > 0)
+        timeMin <- (allRowsTextGrids$xmin)[[frame]]
+        
+        timeMax <- (allRowsTextGrids$xmax)[[frame]]
+        
+        
+        filteringAllRowsTextGrids <- allRowsTextGrids %>% filter(xmin <= timeMin)
+        #crashes if you try to do &&
+        filteringAllRowsTextGrids <- filteringAllRowsTextGrids %>% filter(xmax >= timeMax)
+        
+        
         #xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
         xyFileData <- traces_raw$files[[plainTextname]][[frameNumber]]
         
@@ -425,13 +450,30 @@ loadAllTraces <- function(directory_name){
         
         if (length(xyFileData)>0){
           for (mark in 1:length(xyFileData)){
+            totalRows <- totalRows + 1
             itemNumber <- mark
             xCoor <- xyFileData[[mark]]$x
             yCoor <- xyFileData[[mark]]$y
+            #print(filteringAllRowsTextGrids)
             
             #build data.frame
             appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor, tierName, layerName)
+            #add/use layered tier columns
             rawTraces <- rbind(rawTraces, appendedXYFrame)
+            
+            
+            if (length(filteringAllRowsTextGrids[all(),1]) > 0){
+              #print(length(filteringAllRowsTextGrids[all(),1]))
+              for (tier in 1:length(filteringAllRowsTextGrids[all(),1])){
+                #print(totalRows)
+                #print(filteringAllRowsTextGrids$text[[tier]])
+                
+                rawTraces[[(filteringAllRowsTextGrids$tier_name[[tier]])]][totalRows] <- filteringAllRowsTextGrids$text[[tier]]
+                
+              }
+            }
+            
+            
           }
         }
       } 
@@ -446,7 +488,13 @@ loadAllTraces <- function(directory_name){
   if (unlist(rawTraces[1,3]) == "segment"){
     rawTraces <- rawTraces[-1, ] #delete the heading that is in row 1
   }
-  colnames(rawTraces) <- column_names #replace auto generated heading
+  
+  #replace auto generated heading with initial 7 garanteed columns
+  for (columnReplacement in 1:7){
+    colnames(rawTraces)[[columnReplacement]] <- column_names[[columnReplacement]]
+  }
+  
+  # colnames(rawTraces) <- column_names 
   rawTraces[ ,4] <- as.numeric(rawTraces[ ,4]) #x, y are ints for graphing
   rawTraces[ ,5] <- as.numeric(rawTraces[ ,5])
   
