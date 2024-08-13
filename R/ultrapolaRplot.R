@@ -347,11 +347,14 @@ loadAllTraces <- function(directory_name){
                   yvalues <- append(yvalues, yCoor)
                   
                   appendedFrame <- c(myFileAndFrameName, mark, layer, yCoor, xCoor, "", layer)
-                  for (anExtraSpace in 1:length(rawTraces[1,all()]) - 7){
-                    appendedFrame <- append(appendedFrame, NA) 
-                    #randomly looping around to add file name and item number
-                    #replace with NA, to make it clear
+                  if (length(rawTraces[1,all()]) - length(column_names) > 0){
+                    for (anExtraSpace in 1:length(rawTraces[1,all()]) - length(column_names)){
+                      appendedFrame <- append(appendedFrame, NA) 
+                      #randomly looping around to add file name and item number
+                      #replace with NA, to make it clear
+                    }
                   }
+                  
                   rawTraces <<- rbind(rawTraces, appendedFrame)
                   #layer as segment name, used for plotting.
                 }
@@ -440,6 +443,9 @@ loadAllTraces <- function(directory_name){
         #crashes if you try to do &&
         filteringAllRowsTextGrids <- filteringAllRowsTextGrids %>% filter(xmax >= timeMax)
         
+        #filtering by, of course, text grid file 
+        filteringAllRowsTextGrids <- filteringAllRowsTextGrids %>% filter(filteringAllRowsTextGrids$plainTextName == plainTextname)
+        
         
         #xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
         xyFileData <- traces_raw$files[[plainTextname]][[frameNumber]]
@@ -458,9 +464,10 @@ loadAllTraces <- function(directory_name){
             
             #build data.frame
             appendedXYFrame <- c(myFileAndFrameName, itemNumber, myVowelType, yCoor, xCoor, tierName, layerName)
-            #add/use layered tier columns
             rawTraces <- rbind(rawTraces, appendedXYFrame)
             
+            
+            #add/use layered tier columns
             
             if (length(filteringAllRowsTextGrids[all(),1]) > 0){
               #print(length(filteringAllRowsTextGrids[all(),1]))
@@ -490,7 +497,7 @@ loadAllTraces <- function(directory_name){
   }
   
   #replace auto generated heading with initial 7 garanteed columns
-  for (columnReplacement in 1:7){
+  for (columnReplacement in 1:length(column_names)){
     colnames(rawTraces)[[columnReplacement]] <- column_names[[columnReplacement]]
   }
   
