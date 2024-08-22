@@ -293,12 +293,6 @@ tracesWithoutTier <- function(metaDataFilePath, layerName){
 ```
 
 ```{r}
-textGridDataFile <- read_textgrid('/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012/File001.TextGrid')
-textGridDataFile
-```
-
-
-```{r}
 loadAllTraces <- function(directory_name){
   
   metaDataFile <- paste(directory_name, "metadata.json", sep = "/") 
@@ -1040,7 +1034,7 @@ categories <- c("o","y", "e", "i")
 categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 
 # myXY_data <- loadTraces("/Users/yayaorigami/Documents/plinguistics/IETestData", categoriesAll = c("o", "i"))
-myXY_data <- loadAllTraces("/Users/yayaorigami/Documents/plinguistics/IETestData")
+#myXY_data <- loadAllTraces("/Users/yayaorigami/Documents/plinguistics/IETestData")
 
 # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012",categoriesAll  = list(c("ɫ","n"), c("lʲ", "nʲ"), c("")), layersAll = c('tongue','tongue','palate'), mergeCategories = TRUE) #"ɫ", "lʲ", "n", "nʲ"
 #myXY_data <- loadAllTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
@@ -1052,7 +1046,10 @@ myXY_data <- loadAllTraces("/Users/yayaorigami/Documents/plinguistics/IETestData
 # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", categoriesAll = list(c("n", "nʲ")))
 # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", categoriesAll = list(c(), c("")), tiernameAll = c("cons", ""), layersAll = c('tongue','palate'))
 
-#myXY_data <- loadAllTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3")
+
+#myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/IETestData", categoriesAll = c("i", "o"))
+# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", categoriesAll = c("n", "nʲ"))
+myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3", categoriesAll = c("e", "y"))
 
 # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
 
@@ -1068,14 +1065,6 @@ plotTraces(myXY_data, polarTraces, interval = 1, legend.size = 1, plot.labels = 
 ```
 Four traces each. So 4 by 4 per angle ray. 
 Intersections for each ray, with EACH curve -- should have that from matrixIntersection 
-```{r}
-rayIncrement = 3.14159/180 * 1 #30 degree for test
-  
-uniqueSegments <- get_unique_segments(myXY_data)
-dataOfEachCurveNNj <- read_in_data(myXY_data)
-  
-matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
-```
 
 For each ray angle (5), calculate all differences. Take mean, and standard deviation. 
 Two 1D lists
@@ -1093,6 +1082,8 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
   redLine <- list()
   rayIncrement <- 1
   plotbounds <- identifyPlotBounds(polarTraces)
+  
+  #scalingFactor <- 100 #how to calculate
   
   for (ray in 1:length(matrixIntersection[[1]][1, all()])){
     #[[1]] and [[2]] for matrixIntersection ONLY
@@ -1112,7 +1103,8 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
       meanDifference <- append(meanDifference, mean(differences))
       standardDeviation <- append(standardDeviation, sd(differences))
       #what is proper scaling? 
-      redLine <- append(redLine, mean(differences)/(60*sd(differences)))
+      #redLine <- append(redLine, mean(differences)/(scalingFactor*sd(differences)))
+      redLine <- append(redLine, mean(differences)/(sd(differences)))
     }else{
       #for consistency when matching up with the angle loop
       meanDifference <- append(meanDifference, NA)
@@ -1151,7 +1143,24 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
   x2 <- rev(unlist(lapply(xSDHigh, function(x) na.omit(x)), recursive = TRUE))
   y2 <- rev(unlist(lapply(ySDHigh, function(x) na.omit(x)), recursive = TRUE))
     
+  ZscoreRange <- max(na.omit(unlist(redLine))) - min(na.omit(unlist(redLine)))
+  #scales Z score line to fit the range of plot (mean difference line)
+  scalingFactor <- ZscoreRange/(max(y2) - min(y1))
+  #print(scalingFactor)
+  #+ additional range (if there are more negative z scores)
   
+  redLine2 <- lapply(unlist(redLine), function(x) x/scalingFactor)
+  additionalRoom <- max(y2) - max(na.omit(unlist(redLine2)))
+  if (additionalRoom < 0){
+    additionalRoom <- 0
+  }
+  additionalRoom2 <- min(na.omit(unlist(redLine2))) - min(y1)
+  if (additionalRoom2 < 0){
+    additionalRoom2 <- 0
+  }
+  scalingFactor <- ZscoreRange/(max(y2) - min(y1) - additionalRoom - additionalRoom2 - 0.02)
+  #print(scalingFactor)
+  redLine <- lapply(unlist(redLine), function(x) x/scalingFactor)
   # labelsList <- c(round(min(x1)*180/pi), round((min(x1) + max(x2)/2)*180/pi), round(max(x2)*180/pi))
   # x_ticks <- c(round(plotbounds[[1]],2), round((plotbounds[[2]] + plotbounds[[1]])/2,2), round(plotbounds[[2]],2))
   #meanDifference
@@ -1162,27 +1171,73 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
   #axisX2 <- lapply(axisX2, function(x) -(x-90))
   axisX <- lapply(lapply(meanX, function(x) x*180/pi), function(x) round(x))
   
+  #total range for z score is 
+  
+  #print(ZscoreRange)
+  
+  #nicely distributed and readable z scores, 5 labels
+  ZScorePositioning <- list()
+  ZScorePositioning <- append(ZScorePositioning, 0)
+  ZScorePositioning <- append(ZScorePositioning, min(na.omit(unlist(redLine))))
+  ZScorePositioning <- append(ZScorePositioning, min(na.omit(unlist(redLine)))/2)
+  ZScorePositioning <- append(ZScorePositioning, max(na.omit(unlist(redLine))))
+  ZScorePositioning <- append(ZScorePositioning, max(na.omit(unlist(redLine)))/2)
+  
+  ZScoreLabels <- list()
+  ZScoreLabels <- lapply(ZScorePositioning, function(x) round(x*scalingFactor,1))
+  
+  #code for increments of 1 
+  # for (i in 1:round(max(na.omit(unlist(redLine)))*scalingFactor)){
+  #   ZScoreLabels <- append(ZScoreLabels, round(max(na.omit(unlist(redLine)))*scalingFactor/round(max(na.omit(unlist(redLine)))*scalingFactor)*i,1))
+  # }
+  # 
+  # for (i in round(min(na.omit(unlist(redLine)))*scalingFactor):-1){
+  #   #ZScoreLabels <- append(ZScoreLabels, i)
+  #   ZScoreLabels <- append(ZScoreLabels, round(max(na.omit(unlist(redLine)))*scalingFactor/round(max(na.omit(unlist(redLine)))*scalingFactor)*i,1))
+  # }
+  # ZScoreLabels <- sort(unlist(ZScoreLabels))
+  # print(ZScoreLabels)
+  
+  #want it to clearly go through 0, however, 0 is very close but not quite due to rounding. 
+  #replacing zero..
+  # ZScorePositioning <- seq(min(na.omit(unlist(redLine))), max(na.omit(unlist(redLine))), length.out = length(ZScoreLabels))
+  # indexZero <- which(ZScoreLabels == 0)
+  # ZScorePositioning <- replace(ZScorePositioning, indexZero, 0)
+  # print(ZScorePositioning)
+
   secondYAxis <- seq(min(y1), max(y2), (max(y2) - min(y1))/6)
-  secondYAxisLabes <- lapply(secondYAxis, function(x) round(x*60,2))
+  secondYAxisBetterPositioned <- lapply(secondYAxis, function(x) round(x,2))
+  secondYAxisLabes <- lapply(secondYAxis, function(x) round(x*scalingFactor,2))
+  
+  #starting plotting
+  oldpar <- par(no.readonly = TRUE)
+  on.exit(par(oldpar))
+  #par(pty = "s")
+  par(mar = c(4, 4.4, 1, 3) + 2)
   
   plot(meanX, meanDifference, type = "l", col = "blue", lwd = 2, ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", ylab = "mean difference")
+  #labelling x axis with degree from origin
   axis(1, at = meanX, labels = axisX, tck = 0)
   
-  axis(side=4, at = secondYAxis, labels=secondYAxisLabes, col="red", col.axis="black")
-  #mtext("z score", side = 4, line = 1.5)
+  #axis(side=4, at = secondYAxis, labels=secondYAxisLabes, col="red", col.axis="black")
+  axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="red", col.axis="black")
+  mtext("z score", side = 4, line = 3)
+  
   lines(x1, y1, col = "blue", type = "l", lwd = 1)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
   lines(x2, y2, col = "blue", type = "l", lwd = 1)
   polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor( "blue", alpha.f = 0.37), border = NA)
+  
   lines(meanX, unlist(redLine), col = "red", lwd = 2)
   abline(h=0.0, lty = 2)
-  abline(h=seq(min(y1), max(y2), (max(y2) - min(y1))/6), col="red", lty="dotted")
+  #abline(h=seq(min(y1), max(y2), (max(y2) - min(y1))/6), col="red", lty="dotted")
+  abline(h= ZScorePositioning, col="red", lty="dotted")
   
   indices <- which(unlist(redLine) %in% min(unlist(redLine), na.rm = TRUE))
   #print(redLine[[indices]])
   abline(v = unlist(meanX)[[indices]], col = "red")
   
   indices <- which(unlist(redLine) %in% max(unlist(redLine), na.rm = TRUE))
-  print(redLine[[indices]])
+  #print(redLine[[indices]])
   abline(v = unlist(meanX)[[indices]], col = "red")
   
 }

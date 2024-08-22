@@ -935,3 +935,175 @@ plotTraces <- function(rawTraces, polarTraces, interval = 1, mean.lines = TRUE, 
                   legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                   maskCategories = maskCategories)
 }
+
+differencePlot <- function(rawTraces, polarTraces, interval = 1){
+  rayIncrement = 3.14159/180 * interval #30 degree for test
+  uniqueSegments <- get_unique_segments(rawTraces)
+  dataOfEachCurveNNj <- read_in_data(rawTraces)
+  
+  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
+  
+  meanDifference <- list()
+  standardDeviation <- list()
+  redLine <- list()
+  rayIncrement <- 1
+  plotbounds <- identifyPlotBounds(polarTraces)
+  
+  #scalingFactor <- 100 #how to calculate
+  
+  for (ray in 1:length(matrixIntersection[[1]][1, all()])){
+    #[[1]] and [[2]] for matrixIntersection ONLY
+    if (!is.na(colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray]]) && !is.na(colMeans(matrixIntersection[[2]], na.rm = TRUE)[[ray]]) ){ 
+      #both are not empty... because no point taking difference of like 16.59 - NA right?
+      segment1 <- (matrixIntersection[[1]][all(), ray])[!is.na(matrixIntersection[[1]][all(), ray])]
+      segment2 <- (matrixIntersection[[2]][all(), ray])[!is.na(matrixIntersection[[2]][all(), ray])]
+      
+      differences <- list()
+      #4 by 4 x grid
+      for (item1 in 1:length(segment1)){
+        for (item2 in 1:length(segment2)){
+          differences <- append(differences, segment1[item1] - segment2[item2])
+        }
+      }
+      differences <- unlist(differences)
+      meanDifference <- append(meanDifference, mean(differences))
+      standardDeviation <- append(standardDeviation, sd(differences))
+      #what is proper scaling? 
+      #redLine <- append(redLine, mean(differences)/(scalingFactor*sd(differences)))
+      redLine <- append(redLine, mean(differences)/(sd(differences)))
+    }else{
+      #for consistency when matching up with the angle loop
+      meanDifference <- append(meanDifference, NA)
+      standardDeviation <- append(standardDeviation, NA)
+      redLine <- append(redLine, NA)
+      
+    }
+    differences <- list() #reset/clear for next angle ray
+  }
+  meanX <- list()
+  for (ray in 1:length(matrixIntersection[[1]][1, all()])){
+    meanX <- append(meanX, cos(rayIncrement*ray * pi/180))
+  }
+  #plot label should be this cos converted to degrees.
+  #so times 180/pi
+  
+  xSDHigh <- list()
+  xSDLow <- list()
+  ySDHigh <- list()
+  ySDLow <- list()  
+  
+  for (ray in 1:length(matrixIntersection[[1]][1, all()])){
+    
+    xSDHigh<- append(xSDHigh, cos(rayIncrement*ray*pi/180)*(standardDeviation[[ray]]) + meanX[[ray]])
+    xSDLow <-  append(xSDLow, cos(rayIncrement*ray*pi/180)*(-standardDeviation[[ray]]) + meanX[[ray]])
+    
+    ySDHigh <- append(ySDHigh, sin(rayIncrement*ray*pi/180)*(meanDifference[[ray]] + standardDeviation[[ray]]))
+    ySDLow <-  append(ySDLow, sin(rayIncrement*ray*pi/180)*(meanDifference[[ray]] - standardDeviation[[ray]]))
+    
+  }
+  
+  x1 <- rev(unlist(lapply(xSDLow, function(x) na.omit(x)), recursive = TRUE))
+  y1 <- rev(unlist(lapply(ySDLow, function(x) na.omit(x)), recursive = TRUE))
+  
+  
+  x2 <- rev(unlist(lapply(xSDHigh, function(x) na.omit(x)), recursive = TRUE))
+  y2 <- rev(unlist(lapply(ySDHigh, function(x) na.omit(x)), recursive = TRUE))
+  
+  ZscoreRange <- max(na.omit(unlist(redLine))) - min(na.omit(unlist(redLine)))
+  #scales Z score line to fit the range of plot (mean difference line)
+  scalingFactor <- ZscoreRange/(max(y2) - min(y1))
+  #print(scalingFactor)
+  #+ additional range (if there are more negative z scores)
+  
+  redLine2 <- lapply(unlist(redLine), function(x) x/scalingFactor)
+  additionalRoom <- max(y2) - max(na.omit(unlist(redLine2)))
+  if (additionalRoom < 0){
+    additionalRoom <- 0
+  }
+  additionalRoom2 <- min(na.omit(unlist(redLine2))) - min(y1)
+  if (additionalRoom2 < 0){
+    additionalRoom2 <- 0
+  }
+  scalingFactor <- ZscoreRange/(max(y2) - min(y1) - additionalRoom - additionalRoom2 - 0.02)
+  #print(scalingFactor)
+  redLine <- lapply(unlist(redLine), function(x) x/scalingFactor)
+  # labelsList <- c(round(min(x1)*180/pi), round((min(x1) + max(x2)/2)*180/pi), round(max(x2)*180/pi))
+  # x_ticks <- c(round(plotbounds[[1]],2), round((plotbounds[[2]] + plotbounds[[1]])/2,2), round(plotbounds[[2]],2))
+  #meanDifference
+  
+  axisX2 <- list()
+  axisX2 <- lapply(meanX, function(x) round(x*180/pi))
+  axisX2 <- seq(1,length(matrixIntersection[[1]][1,all()]), interval)
+  #axisX2 <- lapply(axisX2, function(x) -(x-90))
+  axisX <- lapply(lapply(meanX, function(x) x*180/pi), function(x) round(x))
+  
+  #total range for z score is 
+  
+  #print(ZscoreRange)
+  
+  #nicely distributed and readable z scores, 5 labels
+  ZScorePositioning <- list()
+  ZScorePositioning <- append(ZScorePositioning, 0)
+  ZScorePositioning <- append(ZScorePositioning, min(na.omit(unlist(redLine))))
+  ZScorePositioning <- append(ZScorePositioning, min(na.omit(unlist(redLine)))/2)
+  ZScorePositioning <- append(ZScorePositioning, max(na.omit(unlist(redLine))))
+  ZScorePositioning <- append(ZScorePositioning, max(na.omit(unlist(redLine)))/2)
+  
+  ZScoreLabels <- list()
+  ZScoreLabels <- lapply(ZScorePositioning, function(x) round(x*scalingFactor,1))
+  
+  #code for increments of 1 
+  # for (i in 1:round(max(na.omit(unlist(redLine)))*scalingFactor)){
+  #   ZScoreLabels <- append(ZScoreLabels, round(max(na.omit(unlist(redLine)))*scalingFactor/round(max(na.omit(unlist(redLine)))*scalingFactor)*i,1))
+  # }
+  # 
+  # for (i in round(min(na.omit(unlist(redLine)))*scalingFactor):-1){
+  #   #ZScoreLabels <- append(ZScoreLabels, i)
+  #   ZScoreLabels <- append(ZScoreLabels, round(max(na.omit(unlist(redLine)))*scalingFactor/round(max(na.omit(unlist(redLine)))*scalingFactor)*i,1))
+  # }
+  # ZScoreLabels <- sort(unlist(ZScoreLabels))
+  # print(ZScoreLabels)
+  
+  #want it to clearly go through 0, however, 0 is very close but not quite due to rounding. 
+  #replacing zero..
+  # ZScorePositioning <- seq(min(na.omit(unlist(redLine))), max(na.omit(unlist(redLine))), length.out = length(ZScoreLabels))
+  # indexZero <- which(ZScoreLabels == 0)
+  # ZScorePositioning <- replace(ZScorePositioning, indexZero, 0)
+  # print(ZScorePositioning)
+  
+  secondYAxis <- seq(min(y1), max(y2), (max(y2) - min(y1))/6)
+  secondYAxisBetterPositioned <- lapply(secondYAxis, function(x) round(x,2))
+  secondYAxisLabes <- lapply(secondYAxis, function(x) round(x*scalingFactor,2))
+  
+  #starting plotting
+  oldpar <- par(no.readonly = TRUE)
+  on.exit(par(oldpar))
+  #par(pty = "s")
+  par(mar = c(4, 4.4, 1, 3) + 2)
+  
+  plot(meanX, meanDifference, type = "l", col = "blue", lwd = 2, ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", ylab = "mean difference")
+  #labelling x axis with degree from origin
+  axis(1, at = meanX, labels = axisX, tck = 0)
+  
+  #axis(side=4, at = secondYAxis, labels=secondYAxisLabes, col="red", col.axis="black")
+  axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="red", col.axis="black")
+  mtext("z score", side = 4, line = 3)
+  
+  lines(x1, y1, col = "blue", type = "l", lwd = 1)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
+  lines(x2, y2, col = "blue", type = "l", lwd = 1)
+  polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor( "blue", alpha.f = 0.37), border = NA)
+  
+  lines(meanX, unlist(redLine), col = "red", lwd = 2)
+  abline(h=0.0, lty = 2)
+  #abline(h=seq(min(y1), max(y2), (max(y2) - min(y1))/6), col="red", lty="dotted")
+  abline(h= ZScorePositioning, col="red", lty="dotted")
+  
+  indices <- which(unlist(redLine) %in% min(unlist(redLine), na.rm = TRUE))
+  #print(redLine[[indices]])
+  abline(v = unlist(meanX)[[indices]], col = "red")
+  
+  indices <- which(unlist(redLine) %in% max(unlist(redLine), na.rm = TRUE))
+  #print(redLine[[indices]])
+  abline(v = unlist(meanX)[[indices]], col = "red")
+  
+}
