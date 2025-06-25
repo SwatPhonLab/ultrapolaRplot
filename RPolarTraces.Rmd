@@ -25,6 +25,8 @@ library(eply)
 #library(textgRid)
 library(extrafont)
 library(Cairo)
+
+library(tidyr)
 #font_import()
 # Load the DejaVu Sans font family
 #loadfonts()
@@ -304,6 +306,7 @@ loadAllTraces <- function(directory_name){
   filesAll <- metaData$files
   
   #some initial set-up
+  #maybe for tiername just have it standard and just have the list of tiernames, less work
   rawTraces <- data.frame()
   column_names <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiername', 'layername')
   rawTraces <- rbind(rawTraces, column_names)
@@ -546,12 +549,17 @@ loadAllTracesMidPoint <- function(directory_name){
   
   metaData <- fromJSON(file = metaDataFile)
   filesAll <- metaData$files
-
   
   rawTraces <- data.frame()
+  #insert annotation later
+  column_names <- c('file_number', 'itemNumber_inFile', I(list(NA)), 'x', 'y', I(list(NA)), 'layer')
+  rawTraces <- rbind(rawTraces, column_names)
+  colnames(rawTraces) <- c('file_number', 'itemNumber_inFile', 'segment_list', 'x', 'y', 'tiers_list', 'layer')
+  
+ 
+  
   allTiersLabelling <- c()
   allRowsTextGrids <- list()
-
   
   totalRows <- 1
   
@@ -586,9 +594,10 @@ loadAllTracesMidPoint <- function(directory_name){
           textGridDataFile <- read_textgrid(fullFilePath)
         }, error = function(e){
           errorCode = 1
-          message("cannot open textgrid")
-          message(plainTextname)
+          print("cannot open textgrid")
+          print(plainTextname)
           
+          #remove if statement afterwards i think 
           if(errorCode==1){ 
             #there is an error opening the TextGrid. #therefore, get the xy data from this file, and label with layer name...
             #just add xy data immediately to rawTraces?
@@ -610,14 +619,9 @@ loadAllTracesMidPoint <- function(directory_name){
                   xvalues <- append(xvalues, xCoor)
                   yvalues <- append(yvalues, yCoor)
                   
-                  appendedFrame <- c(myFileAndFrameName, mark, layer, yCoor, xCoor, "", layer)
-                  if (length(rawTraces[1,all()]) - length(column_names) > 0){
-                    for (anExtraSpace in 1:length(rawTraces[1,all()]) - length(column_names)){
-                      appendedFrame <- append(appendedFrame, NA) 
-                      #randomly looping around to add file name and item number
-                      #replace with NA, to make it clear
-                    }
-                  }
+                  #lack of segment and tiers
+                  appendedFrame <- data.frame(myFileAndFrameName, mark, I(list(NA)), xCoor, yCoor, I(list(NA)), layer)
+                  colnames(appendedFrame) <- c('file_number', 'itemNumber_inFile', 'segment_list', 'x', 'y', 'tiers_list', 'layer')
                   rawTraces <<- rbind(rawTraces, appendedFrame)
                   #layer as segment name, used for plotting.
                 }
@@ -675,7 +679,6 @@ loadAllTracesMidPoint <- function(directory_name){
           #create new column for intersecting items
           df <- df %>% mutate(overlappingSegments = list(NA))
           df <- df %>% mutate(overlappingTiers = list(NA))
-          #print(df)
           
           #now will keep less rows, and check if there is annotation on that midpoint
           
@@ -699,18 +702,15 @@ loadAllTracesMidPoint <- function(directory_name){
               plainTextname <- (df$plainTextName)[[frame]]
               frameNumber <- (df$frame)[[frame]]
               
-              #filteringAllRowsTextGrids <- filteringAllRowsTextGrids %>% filter(filteringAllRowsTextGrids$plainTextName == plainTextname)
-
-
               xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
 
               #need to check if there is actually annotation here]
               if (length(xyFileData) > 0) {
                 annotedTrueFalse <- append(annotedTrueFalse, 1)
                 #finding smaller intervals
+                #intersect
                 filteringAllRowsTextGrids <- df[which(df$xmin <= timeMin),] #%>% filter(timeMin >= xmin)
                 filteringAllRowsTextGrids <- filteringAllRowsTextGrids[which(filteringAllRowsTextGrids$xmax >= timeMax),]#df %>% filter(timeMax <= xmax)
-                #print(filteringAllRowsTextGrids)
               
                 for (smallerInterval in 1:length(filteringAllRowsTextGrids$xmax)){
                    frameNumber <- (filteringAllRowsTextGrids$frame)[[smallerInterval]]
@@ -719,52 +719,23 @@ loadAllTracesMidPoint <- function(directory_name){
                    #plainTextname should be same as it is same file still
                    xyFileData <- traces_raw$files[[plainTextname]][[frameNumber]]
 
-                   #overlapping <- rbind(overlapping, c(textOnTier, plainTextName, frameNumber, annotated))
                    overlapping <- append(overlapping, textOnTier)
                    additionalTiers <- append(additionalTiers, tierOverlap)
                    #df[[(filteringAllRowsTextGrids$tier_name[[smallerInterval]])]][frame] <- c(filteringAllRowsTextGrids$text[[smallerInterval]], annotated)
   
                 }
-                df$overlappingSegments[[frame]] <- overlapping
-                df$overlappingTiers[[frame]] <- additionalTiers
+                df$overlappingSegments[[frame]] <- unlist(overlapping)
+                df$overlappingTiers[[frame]] <- unlist(additionalTiers)
               }else{
                 annotedTrueFalse <- append(annotedTrueFalse, 0)
               }
-              
             }
             df <- df %>% mutate(annotated = unlist(annotedTrueFalse))
-            #added some additional columns to df with overlapping tiers and boolean if they are annotated
             
-            #can already expand df?
-            #find all unique tiers
-            allTiers <- na.omit(unlist(unique(df$overlappingTiers)))
-            #for each row add a list of same length with the column names.
-            #entries are the text or NA if doesn't exist
-            #the row entry of [1] works for all rows..
-            if (length(allTiers) > 0){
-              for (tier in 1:length(allTiers)){
-                df[[(allTiers[[tier]])]][1] <- NA
-              }
-            }
-            
-            #instead of NA fill up with text
-            for (midpoint in 1:length(df$mid_point)){
-              overlappingTiersRow <- na.omit(df$overlappingTiers[[midpoint]])
-              overlappingTextRow <- na.omit(df$overlappingSegments[[midpoint]])
-              if (length(overlappingTiersRow) > 0){
-                for (overlappingTier in 1:length(overlappingTiersRow)){
-                  df[[overlappingTiersRow[[overlappingTier]]]][[midpoint]] <-overlappingTextRow[[overlappingTier]]
-                }
-              }
-            }
-            
-            #no need for the overlappingTier or Segments columns -- has been expanded to individual columns
-            df <- df %>% select(-overlappingTiers, -overlappingSegments)
-          
             #can still keep unnannoted segments by removing if statement
             for (midpoint in 1:length(df$mid_point)){
-              if (df$annotated[[midpoint]] == 1){ #will at least overlap with itself
-                allRowsTextGrids <- rbind(allRowsTextGrids, data.frame(df[midpoint,])) #necessary in case multiple text grid files
+              if (df$annotated[[midpoint]] == 1){ 
+                allRowsTextGrids <- rbind(allRowsTextGrids, data.frame(df[midpoint,]))
               }
             }
             
@@ -774,31 +745,30 @@ loadAllTracesMidPoint <- function(directory_name){
       }
       
     }
-    if (!is.null(colnames(allRowsTextGrids))){
-      allTiersLabelling <- colnames(allRowsTextGrids)
-    }
-    #return(allRowsTextGrids)
-    #extract xy data separately once we have all the data
-    #filter by layered tiers
     
-    if (length(allRowsTextGrids$frame) > 0){ #R should already be able to do this. 
+    #return(allRowsTextGrids)
+    #extract xy data separately
+    if (length(allRowsTextGrids$frame) > 0){ 
       for(frame in 1:length(allRowsTextGrids$frame)){
         frameNumber = (allRowsTextGrids$frame)[[frame]]
         plainTextname <- allRowsTextGrids$plainTextName[[frame]]
+        myFileAndFrameName <- paste(plainTextname, "_", frameNumber, sep = "")
         xyFileData <- traces_raw$files[[plainTextname]][[frameNumber]]
+        
+        segments <- list(unlist(allRowsTextGrids$overlappingSegments[[frame]]))
+        tiers <- list(unlist(allRowsTextGrids$overlappingTiers[[frame]]))
+        layerOf <- allRowsTextGrids$layerName[[frame]]
+        
         if (length(xyFileData)>0){
           for (mark in 1:length(xyFileData)){
-            totalRows <- totalRows + 1
             itemNumber <- mark
             xCoor <- xyFileData[[mark]]$x
             yCoor <- xyFileData[[mark]]$y
-            #print(filteringAllRowsTextGrids)
             
-            #build data.frame
-            allFrame <- c(unlist(allRowsTextGrids[frame, all()]), itemNumber, xCoor, yCoor)
+            allFrame <- data.frame(myFileAndFrameName, itemNumber, I(segments), xCoor, yCoor, I(tiers), layerOf)
+            colnames(allFrame) <- c('file_number', 'itemNumber_inFile', 'segment_list', 'x', 'y', 'tiers_list', 'layer')
+            #print(data.frame(myFileAndFrameName, itemNumber, I(segments), xCoor, yCoor, I(tiers), layerOf))
             rawTraces <- rbind(rawTraces, allFrame)
-            
-
           }
         }
       } 
@@ -806,11 +776,10 @@ loadAllTracesMidPoint <- function(directory_name){
     allRowsTextGrids <- list()
   }
   
-
-  colnames(rawTraces) <- append(allTiersLabelling, c("Item Number", "X", "Y"))
-  rownames(rawTraces) <- NULL
-  #column rearrangment and renaming to match with rest of functions
-  #rawTraces <- subset(rawTraces, select = c())
+  rawTraces <- rawTraces[-1, ]
+  #colnames(rawTraces) <- c('file_number', 'itemNumber_inFile', 'segment_list', 'x', 'y', 'tiers_list', 'layer')
+  rawTraces[ ,4] <- as.numeric(rawTraces[ ,4]) #x, y are ints for graphing
+  rawTraces[ ,5] <- as.numeric(rawTraces[ ,5])
 
   return(rawTraces)
 }
@@ -1330,19 +1299,28 @@ categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 
 #myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/IETestData")#, categoriesAll = c("i", "o"))
 # myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", categoriesAll = c("n", "nʲ"))
-myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3")#, categoriesAll = c("u", "y"))
-myXY_data2 <- loadAllTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3")
+#myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/IETestData")#, categoriesAll = c("u", "y"))
+#myXY_data2 <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3")
 
-# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
+myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
 
 # myXY_data <- loadTraces("~/Documents/plinguistics/Dataset3/", categoriesAll = list(c('u', 'ɯ', 'o', 'ɑ'), c('i', 'y', 'e', 'ø')), mergeCategories = TRUE)
 # #does not crash if "cons" tier specified to palate, which is good'
 #myXY_data <- loadAllTraces("~/Documents/plinguistics/Dataset3/")
 myXY_data
-myXY_data2
+#myXY_data2
 #inherits(c(), "NULL")
 
 ```
+
+```{r}
+test <- myXY_data[sapply(myXY_data$segment_list, function(x) any(c("n") %in% x)),]
+expanded_data <- myXY_data %>% unnest(c(segment_list, tiers_list))
+expanded_data
+
+```
+
+
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
 plotTraces(myXY_data, polarTraces, interval = 1, legend.size = 1, plot.labels = TRUE, plot.ticks = TRUE, tick.size = 1)
