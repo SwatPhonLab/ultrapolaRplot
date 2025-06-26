@@ -554,7 +554,7 @@ loadAllTracesMidPoint <- function(directory_name){
   #insert annotation later
   column_names <- c('file_number', 'itemNumber_inFile', I(list(NA)), 'x', 'y', I(list(NA)), 'layer')
   rawTraces <- rbind(rawTraces, column_names)
-  colnames(rawTraces) <- c('file_number', 'itemNumber_inFile', 'segment_list', 'x', 'y', 'tiers_list', 'layer')
+  colnames(rawTraces) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer')
   
  
   
@@ -619,9 +619,9 @@ loadAllTracesMidPoint <- function(directory_name){
                   xvalues <- append(xvalues, xCoor)
                   yvalues <- append(yvalues, yCoor)
                   
-                  #lack of segment and tiers
-                  appendedFrame <- data.frame(myFileAndFrameName, mark, I(list(NA)), xCoor, yCoor, I(list(NA)), layer)
-                  colnames(appendedFrame) <- c('file_number', 'itemNumber_inFile', 'segment_list', 'x', 'y', 'tiers_list', 'layer')
+                  #lack of segment and tiers, for plotting layer name is used for segment
+                  appendedFrame <- data.frame(myFileAndFrameName, mark, layer, yCoor, xCoor, I(list(NA)), layer)
+                  colnames(appendedFrame) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer')
                   rawTraces <<- rbind(rawTraces, appendedFrame)
                   #layer as segment name, used for plotting.
                 }
@@ -765,8 +765,8 @@ loadAllTracesMidPoint <- function(directory_name){
             xCoor <- xyFileData[[mark]]$x
             yCoor <- xyFileData[[mark]]$y
             
-            allFrame <- data.frame(myFileAndFrameName, itemNumber, I(segments), xCoor, yCoor, I(tiers), layerOf)
-            colnames(allFrame) <- c('file_number', 'itemNumber_inFile', 'segment_list', 'x', 'y', 'tiers_list', 'layer')
+            allFrame <- data.frame(myFileAndFrameName, itemNumber, I(segments), yCoor, xCoor, I(tiers), layerOf)
+            colnames(allFrame) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer')
             #print(data.frame(myFileAndFrameName, itemNumber, I(segments), xCoor, yCoor, I(tiers), layerOf))
             rawTraces <- rbind(rawTraces, allFrame)
           }
@@ -1248,13 +1248,66 @@ makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin
 #800, 600 : others
 ```
 
+
 ```{r}
-plotTraces <- function(rawTraces, polarTraces, interval = 1, mean.lines = TRUE, points.display = FALSE,
+filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA)){
+  
+  expandedTraces <- rawTraces %>% unnest(c(segment, tiers_list))
+  
+  if (inherits(categoriesAll, "character") || inherits(categoriesAll, "NULL")){
+    categoriesAll <- list(categoriesAll)
+  }
+  #padding 
+  for (i in 1:length(categoriesAll)){
+    if (length(tiernameAll) < length(categoriesAll)){
+      tiernameAll <- append(tiernameAll, tiernameAll[[1]])
+    }
+    if (length(layersAll) < length(categoriesAll)){
+      layersAll <- append(layersAll, layersAll[[1]])
+    }
+  }
+  loopLength <- max(length(tiernameAll), length(categoriesAll))
+  
+  filteredTraces <- data.frame()
+  #filtering
+  for (item in 1:loopLength){
+    temporaryTraces <- expandedTraces
+    
+    if (!is.na(layersAll[[item]])[[1]]){
+      temporaryTraces <- temporaryTraces[sapply(expandedTraces$layer, function(x) any(layersAll[[item]] %in% x)),]
+    }
+    if (!is.na(tiernameAll[[item]])[[1]]){
+      temporaryTraces <- temporaryTraces[sapply(temporaryTraces$tiers_list, function(x) any(tiernameAll[[item]] %in% x)),]
+    }
+    if (!is.na(categoriesAll[[item]])[[1]]){
+      temporaryTraces <- temporaryTraces[sapply( temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
+    }
+    if (!( (is.na(layersAll[[item]])[[1]] && is.na(tiernameAll[[item]])[[1]]) && is.na(categoriesAll[[item]])[[1]]) ){
+      filteredTraces <- rbind(filteredTraces, temporaryTraces)
+    }
+    
+  }
+  return(data.frame(filteredTraces))
+    
+}
+```
+
+
+```{r}
+plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), origin.algorithm = "BottomMiddle", origin.x = NA,
+                       scaling.factor = 800/600, 
+                       interval = 1, mean.lines = TRUE, points.display = FALSE,
                        palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft",
                        means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE,
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c()){
+  
+  if (typeof(polarTraces) == "character"){
+    rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll)
+    rawTraces <- rawTraces %>% select(-tiers_list, -layer) 
+    polarTraces <- makeTracesPolar(rawTraces, origin.algorithm, origin.x, scaling.factor)
+  }
   
   rayIncrement = 3.14159/180 * interval
   
@@ -1302,22 +1355,26 @@ categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 #myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/IETestData")#, categoriesAll = c("u", "y"))
 #myXY_data2 <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3")
 
-myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
+#myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
+
+rawTraces <- loadTraces("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", tiernameAll = c("cons", ""), categoriesAll = list(c("n"), ""), layersAll = c('tongue', 'palate'))
+
+# polarTraces <- makeTracesPolar(rawTraces)                                                                           
+# plotTraces(rawTraces, polarTraces, pdf.filename = "Palate-test.pdf", palette = c(CB2, Black))
 
 # myXY_data <- loadTraces("~/Documents/plinguistics/Dataset3/", categoriesAll = list(c('u', 'ɯ', 'o', 'ɑ'), c('i', 'y', 'e', 'ø')), mergeCategories = TRUE)
 # #does not crash if "cons" tier specified to palate, which is good'
 #myXY_data <- loadAllTraces("~/Documents/plinguistics/Dataset3/")
-myXY_data
+#myXY_data
+
 #myXY_data2
 #inherits(c(), "NULL")
-
 ```
 
 ```{r}
-test <- myXY_data[sapply(myXY_data$segment_list, function(x) any(c("n") %in% x)),]
-expanded_data <- myXY_data %>% unnest(c(segment_list, tiers_list))
-expanded_data
-
+# filteredTraces <- filteringRawTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
+# filteredTraces
+plotTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
 ```
 
 
