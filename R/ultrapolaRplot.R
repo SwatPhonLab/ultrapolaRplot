@@ -1155,6 +1155,47 @@ makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin
   return(polarTraces)
 }
 
+filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA)){
+  
+  expandedTraces <- rawTraces %>% unnest(c(segment, tiers_list))
+  
+  if (inherits(categoriesAll, "character") || inherits(categoriesAll, "NULL")){
+    categoriesAll <- list(categoriesAll)
+  }
+  #padding 
+  for (i in 1:length(categoriesAll)){
+    if (length(tiernameAll) < length(categoriesAll)){
+      tiernameAll <- append(tiernameAll, tiernameAll[[1]])
+    }
+    if (length(layersAll) < length(categoriesAll)){
+      layersAll <- append(layersAll, layersAll[[1]])
+    }
+  }
+  loopLength <- max(length(tiernameAll), length(categoriesAll))
+  
+  filteredTraces <- data.frame()
+  #filtering
+  for (item in 1:loopLength){
+    temporaryTraces <- expandedTraces
+    
+    if (!is.na(layersAll[[item]])[[1]]){
+      temporaryTraces <- temporaryTraces[sapply(expandedTraces$layer, function(x) any(layersAll[[item]] %in% x)),]
+    }
+    if (!is.na(tiernameAll[[item]])[[1]]){
+      temporaryTraces <- temporaryTraces[sapply(temporaryTraces$tiers_list, function(x) any(tiernameAll[[item]] %in% x)),]
+    }
+    if (!is.na(categoriesAll[[item]])[[1]]){
+      temporaryTraces <- temporaryTraces[sapply( temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
+    }
+    if (!( (is.na(layersAll[[item]])[[1]] && is.na(tiernameAll[[item]])[[1]]) && is.na(categoriesAll[[item]])[[1]]) ){
+      filteredTraces <- rbind(filteredTraces, temporaryTraces)
+    }
+    
+  }
+  return(data.frame(filteredTraces))
+  
+}
+
 plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), origin.algorithm = "BottomMiddle", origin.x = NA,
                        scaling.factor = 800/600, 
                        interval = 1, mean.lines = TRUE, points.display = FALSE,
