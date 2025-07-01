@@ -3,7 +3,7 @@ Type: Package
 Title: Plotting Ultrasound Tongue Traces
 Version: 0.1.1
 Author: Yana Outkin, Jonathan Washington
-Imports: RColorBrewer, tibble, dplyr, rjson, ggplot2, Cairo, plyr, purrr, readr, stringr
+Imports: RColorBrewer, tibble, dplyr, rjson, ggplot2, Cairo, plyr, purrr, readr, stringr, tidyr
 Maintainer Name: Yana Outkin
 Maintainer Email: <youtkin1@swarthmore.edu>
 Description: The ultrapolaRplot library for R is designed for plotting traced ultrasound tongue
