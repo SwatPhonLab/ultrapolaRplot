@@ -1155,12 +1155,20 @@ makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin
   return(polarTraces)
 }
 
-plotTraces <- function(rawTraces, polarTraces, interval = 1, mean.lines = TRUE, points.display = FALSE,
+plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), origin.algorithm = "BottomMiddle", origin.x = NA,
+                       scaling.factor = 800/600, 
+                       interval = 1, mean.lines = TRUE, points.display = FALSE,
                        palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft",
                        means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE,
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c()){
+  
+  if (typeof(polarTraces) == "character"){
+    rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll)
+    rawTraces <- rawTraces %>% select(-tiers_list, -layer) 
+    polarTraces <- makeTracesPolar(rawTraces, origin.algorithm, origin.x, scaling.factor)
+  }
   
   rayIncrement = 3.14159/180 * interval
   
