@@ -1250,7 +1250,7 @@ makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin
 
 
 ```{r}
-filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA)){
+filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE)){
   
   expandedTraces <- rawTraces %>% unnest(c(segment, tiers_list))
   
@@ -1264,6 +1264,9 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
     }
     if (length(layersAll) < length(categoriesAll)){
       layersAll <- append(layersAll, layersAll[[1]])
+    }
+    if (length(mergeCategories) < length(categoriesAll)){
+      mergeCategories <- append(mergeCategories, mergeCategories[[1]])
     }
   }
   loopLength <- max(length(tiernameAll), length(categoriesAll))
@@ -1283,7 +1286,18 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
       temporaryTraces <- temporaryTraces[sapply( temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
     }
     if (!( (is.na(layersAll[[item]])[[1]] && is.na(tiernameAll[[item]])[[1]]) && is.na(categoriesAll[[item]])[[1]]) ){
-      filteredTraces <- rbind(filteredTraces, temporaryTraces)
+      if (mergeCategories[[item]] == TRUE){
+        if (!is.na(categoriesAll[[item]])[[1]]){
+          myVowelType <- paste(categoriesAll[[item]], collapse = "")
+        }else{
+          myVowelType <- layersAll[[item]] #or something else
+        }
+        temporaryTraces$segment <- myVowelType
+        filteredTraces <- rbind(filteredTraces, temporaryTraces)
+          
+      }else{
+        filteredTraces <- rbind(filteredTraces, temporaryTraces)
+      }
     }
     
   }
@@ -1294,7 +1308,7 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
 
 
 ```{r}
-plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), origin.algorithm = "BottomMiddle", origin.x = NA,
+plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE), origin.algorithm = "BottomMiddle", origin.x = NA,
                        scaling.factor = 800/600, 
                        interval = 1, mean.lines = TRUE, points.display = FALSE,
                        palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft",
@@ -1304,7 +1318,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        maskCategories = c()){
   
   if (typeof(polarTraces) == "character"){
-    rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll)
+    rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
     rawTraces <- rawTraces %>% select(-tiers_list, -layer) 
     polarTraces <- makeTracesPolar(rawTraces, origin.algorithm, origin.x, scaling.factor)
   }
@@ -1357,12 +1371,19 @@ categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 
 #myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
 
-rawTraces <- loadTraces("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", tiernameAll = c("cons", ""), categoriesAll = list(c("n"), ""), layersAll = c('tongue', 'palate'))
+# rawTraces <- loadTraces("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", tiernameAll = c("cons", ""), categoriesAll = list(c("n"), ""), layersAll = c('tongue', 'palate'))
+
+
+#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
+
+rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012") 
+
+# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), pdf.filename = "Palate-test4.pdf", categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V\_V.FF', 'zʲ.V\_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V\_V.FF', 'zˠ.V\_#.F'), c('zˠ.V\_#.M', 'zˠ.V\_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V\_V.BB', 'zʲ.V\_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V\_V.BB', 'zˠ.V\_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), maskCategories = c("SʲV\[-bk\]", "SˠV\[-bk\]", "SˠV\[mid\]", "SʲV\[+bk\]", "SˠV\[+bk\]", "Palate"))
 
 # polarTraces <- makeTracesPolar(rawTraces)                                                                           
 # plotTraces(rawTraces, polarTraces, pdf.filename = "Palate-test.pdf", palette = c(CB2, Black))
 
-# myXY_data <- loadTraces("~/Documents/plinguistics/Dataset3/", categoriesAll = list(c('u', 'ɯ', 'o', 'ɑ'), c('i', 'y', 'e', 'ø')), mergeCategories = TRUE)
+#myXY_data <- loadTraces("~/Documents/plinguistics/Dataset3/", categoriesAll = list(c('u', 'ɯ', 'o', 'ɑ'), c('i', 'y', 'e', 'ø')), mergeCategories = TRUE)
 # #does not crash if "cons" tier specified to palate, which is good'
 #myXY_data <- loadAllTraces("~/Documents/plinguistics/Dataset3/")
 #myXY_data
@@ -1372,9 +1393,20 @@ rawTraces <- loadTraces("~/Documents/plinguistics/updatedRussianPalatals/ultraso
 ```
 
 ```{r}
-# filteredTraces <- filteringRawTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
+#filteredTraces <- filteringRawTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
+#filteredTraces <- filteringRawTraces(myXY_data, categoriesAll = list(c( \'o', 'ɑ')))
+#filteredTraces
 # filteredTraces
-plotTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
+#plotTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
+#plotTraces(myXY_data2, categoriesAll = list(c('u', 'ɯ', 'o', 'ɑ')), origin.algorithm = "BottomMean")
+#plotTraces(rawTraces, tiernameAll = c("cons2", NA), categoriesAll = list(c('sˠ.#_C.j'), NA), layersAll = c('tongue', 'palate'))
+#plotTraces(rawTraces, tiernameAll = c("cons2", NA), categoriesAll = list(c('sˠ.#_C.j'), NA), layersAll = c('tongue', 'palate'))
+
+plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), pdf.filename = "Palate-test4.pdf", categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'zʲ.V_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'zˠ.V_#.F'), c('zˠ.V_#.M', 'zˠ.V_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), mergeCategories = TRUE, maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "SˠV[mid]", "SʲV[+bk]", "SˠV[+bk]", "Palate"))
+
+# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", NA), pdf.filename = "Palate-test2.pdf", categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'zʲ.V_V.FF'), c('sʲ.#_V.F', 'sʲ.V_#.F'), NA), layersAll = c('tongue', 'tongue', 'palate'), mergeCategories = c(TRUE), palette = c("blue", "red", "black"), maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "palate"), means.styles = c(2,3,4)) 
+
+# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", NA), mergeCategories = c(TRUE), pdf.filename = "Palate-test2.pdf", categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF'), c('sʲ.#_V.F', 'sʲ.V_#.F'), NA), layersAll = c('tongue', 'tongue', 'palate'), palette = c("blue", "red", "black"), maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "palate"), means.styles = c(2,3,4))
 ```
 
 

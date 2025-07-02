@@ -1155,7 +1155,7 @@ makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin
   return(polarTraces)
 }
 
-filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA)){
+filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE)){
   
   expandedTraces <- rawTraces %>% unnest(c(segment, tiers_list))
   
@@ -1169,6 +1169,9 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
     }
     if (length(layersAll) < length(categoriesAll)){
       layersAll <- append(layersAll, layersAll[[1]])
+    }
+    if (length(mergeCategories) < length(categoriesAll)){
+      mergeCategories <- append(mergeCategories, mergeCategories[[1]])
     }
   }
   loopLength <- max(length(tiernameAll), length(categoriesAll))
@@ -1188,7 +1191,18 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
       temporaryTraces <- temporaryTraces[sapply( temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
     }
     if (!( (is.na(layersAll[[item]])[[1]] && is.na(tiernameAll[[item]])[[1]]) && is.na(categoriesAll[[item]])[[1]]) ){
-      filteredTraces <- rbind(filteredTraces, temporaryTraces)
+      if (mergeCategories[[item]] == TRUE){
+        if (!is.na(categoriesAll[[item]])[[1]]){
+          myVowelType <- paste(categoriesAll[[item]], collapse = "")
+        }else{
+          myVowelType <- layersAll[[item]] #or something else
+        }
+        temporaryTraces$segment <- myVowelType
+        filteredTraces <- rbind(filteredTraces, temporaryTraces)
+        
+      }else{
+        filteredTraces <- rbind(filteredTraces, temporaryTraces)
+      }
     }
     
   }
@@ -1196,7 +1210,7 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
   
 }
 
-plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), origin.algorithm = "BottomMiddle", origin.x = NA,
+plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE), origin.algorithm = "BottomMiddle", origin.x = NA,
                        scaling.factor = 800/600, 
                        interval = 1, mean.lines = TRUE, points.display = FALSE,
                        palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft",
@@ -1206,7 +1220,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        maskCategories = c()){
   
   if (typeof(polarTraces) == "character"){
-    rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll)
+    rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
     rawTraces <- rawTraces %>% select(-tiers_list, -layer) 
     polarTraces <- makeTracesPolar(rawTraces, origin.algorithm, origin.x, scaling.factor)
   }
