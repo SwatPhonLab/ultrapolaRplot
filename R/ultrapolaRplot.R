@@ -892,44 +892,40 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   }
   #end set up
   count <- 0
-  #for each extending radius
-  for (angleRay in seq(from=0, to= 3.14, by= rayIncrement)){
-    count <- count + 1
-    for (segment in 1:length(uniqueSegments)){ #and for each segment
+   #for each extending radius
+    for (angleRay in seq(from=0, to= 3.14, by= rayIncrement)){
+      count <- count + 1
+      for (segment in 1:length(uniqueSegments)){ #and for each segment
       
-      for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment (alphabetical??)
-        
-        for (individualPoint in 1:(length(formatedData[[segment]][[individualTrace]][1, all()])-1)){ #for each point on the trace, find intersection
-          #find the right two points the angle falls between for each individual trace
-          
-          if (angleRay <= formatedData[[segment]][[individualTrace]][3, individualPoint +1]){
-            if (angleRay >= formatedData[[segment]][[individualTrace]][3, individualPoint]){ 
-              
-              #print("found intersection with the following ray angle")
-              
-              myIntersection <- calculateIntersection2(
-                
-                (formatedData[[segment]][[individualTrace]][4,individualPoint]), 
-                (formatedData[[segment]][[individualTrace]][4,individualPoint + 1]), 
-                (formatedData[[segment]][[individualTrace]][3,individualPoint]), 
-                angleRay, 
-                (formatedData[[segment]][[individualTrace]][3,individualPoint + 1]) 
-                
-              )
-              
-              #store value
-              #matrixIntersection[[segment]][[individualTrace, angleRay/rayIncrement]] <- myIntersection
-              matrixIntersection[[segment]][[individualTrace, count]] <- myIntersection
-              break
-            }
-          }
-          
-        }
-        
-      } #end individual trace for loop 
+       for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment (alphabetical??)
+         if (length(formatedData[[segment]][[individualTrace]][1, all()])-1 > 1){
+             for (individualPoint in 1:(length(formatedData[[segment]][[individualTrace]][1, all()])-1)){ #for each point on the trace, find intersection
+            #find the right two points the angle falls between for each individual trace
+             
+             if (angleRay <= formatedData[[segment]][[individualTrace]][3, individualPoint +1]){
+               if (angleRay >= formatedData[[segment]][[individualTrace]][3, individualPoint]){ 
+                 
+                 myIntersection <- calculateIntersection2(
+                    (formatedData[[segment]][[individualTrace]][4,individualPoint]), 
+                    (formatedData[[segment]][[individualTrace]][4,individualPoint + 1]), 
+                    (formatedData[[segment]][[individualTrace]][3,individualPoint]), 
+                    angleRay, 
+                    (formatedData[[segment]][[individualTrace]][3,individualPoint + 1]) 
+                 )
+                 
+                 matrixIntersection[[segment]][[individualTrace, count]] <- myIntersection
+                 break
+               }
+             }
+                 
+           }
+         }
+         
+         
+     } #end individual trace for loop 
       
     } #end segment for loop
-    
+  
   } #end angle ray for loop 
   return(matrixIntersection) # columns for rays
 } 
