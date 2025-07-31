@@ -702,8 +702,9 @@ loadAllTracesMidPoint <- function(directory_name){
               plainTextname <- (df$plainTextName)[[frame]]
               frameNumber <- (df$frame)[[frame]]
               
-              xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
-
+              currentLayer <- df$layerName[[frame]]
+              
+              xyFileData <- (metaData$traces)[[currentLayer]]$files[[plainTextname]][[frameNumber]]
               #need to check if there is actually annotation here]
               if (length(xyFileData) > 0) {
                 annotedTrueFalse <- append(annotedTrueFalse, 1)
@@ -731,7 +732,6 @@ loadAllTracesMidPoint <- function(directory_name){
               }
             }
             df <- df %>% mutate(annotated = unlist(annotedTrueFalse))
-            
             #can still keep unnannoted segments by removing if statement
             for (midpoint in 1:length(df$mid_point)){
               if (df$annotated[[midpoint]] == 1){ 
@@ -1379,8 +1379,8 @@ categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
 
 #rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
 
-rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
-# rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ/ultrasound-data-TatarKQ-191001")
+# rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
+rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
 
 # plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), pdf.filename = "Palate-test4.pdf", categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V\_V.FF', 'zʲ.V\_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V\_V.FF', 'zˠ.V\_#.F'), c('zˠ.V\_#.M', 'zˠ.V\_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V\_V.BB', 'zʲ.V\_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V\_V.BB', 'zˠ.V\_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), maskCategories = c("SʲV\[-bk\]", "SˠV\[-bk\]", "SˠV\[mid\]", "SʲV\[+bk\]", "SˠV\[+bk\]", "Palate"))
 
@@ -1397,6 +1397,11 @@ rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalat
 ```
 
 ```{r}
+rawTraces
+```
+
+
+```{r}
 #filteredTraces <- filteringRawTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
 #filteredTraces <- filteringRawTraces(myXY_data, categoriesAll = list(c( \'o', 'ɑ')))
 #filteredTraces
@@ -1406,7 +1411,9 @@ rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalat
 #plotTraces(rawTraces, tiernameAll = c("cons2", NA), categoriesAll = list(c('sˠ.#_C.j'), NA), layersAll = c('tongue', 'palate'))
 #plotTraces(rawTraces, tiernameAll = c("cons2", NA), categoriesAll = list(c('sˠ.#_C.j'), NA), layersAll = c('tongue', 'palate'))
 
-plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'zʲ.V_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'zˠ.V_#.F'), c('zˠ.V_#.M', 'zˠ.V_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), mergeCategories = TRUE, maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "SˠV[mid]", "SʲV[+bk]", "SˠV[+bk]", "Palate"))
+# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'zʲ.V_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'zˠ.V_#.F'), c('zˠ.V_#.M', 'zˠ.V_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), mergeCategories = TRUE, maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "SˠV[mid]", "SʲV[+bk]", "SˠV[+bk]", "Palate"))
+
+plotTraces(rawTraces, mergeCategories = c(TRUE), pdf.filename = "tatarkq.pdf", tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments", NA), categoriesAll = list(c('a'), c('i'), c('ʊ'), c('u'), c('ʏ'), c('y'), c('ə'), c('ɘ'), NA), layersAll = c('Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Palate'), maskCategories = c("a", "i", "ʊ", "u", "ʏ", "y", "ə", "ɘ", "Palate"), means.styles = c(1,1,2,2,3,3,4,4,1))
 
 # plotTraces(rawTraces, categoriesAll = list(c("Tongue"), c("Palate")))
 

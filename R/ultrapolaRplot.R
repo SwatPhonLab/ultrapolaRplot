@@ -674,8 +674,9 @@ loadAllTracesMidPoint <- function(directory_name){
             plainTextname <- (df$plainTextName)[[frame]]
             frameNumber <- (df$frame)[[frame]]
             
-            xyFileData <- (metaData$traces)$tongue$files[[plainTextname]][[frameNumber]]
+            currentLayer <- df$layerName[[frame]]
             
+            xyFileData <- (metaData$traces)[[currentLayer]]$files[[plainTextname]][[frameNumber]]
             #need to check if there is actually annotation here]
             if (length(xyFileData) > 0) {
               annotedTrueFalse <- append(annotedTrueFalse, 1)
@@ -703,7 +704,6 @@ loadAllTracesMidPoint <- function(directory_name){
             }
           }
           df <- df %>% mutate(annotated = unlist(annotedTrueFalse))
-          
           #can still keep unnannoted segments by removing if statement
           for (midpoint in 1:length(df$mid_point)){
             if (df$annotated[[midpoint]] == 1){ 
