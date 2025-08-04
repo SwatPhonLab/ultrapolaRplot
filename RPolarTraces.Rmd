@@ -596,6 +596,8 @@ loadAllTracesMidPoint <- function(directory_name){
           errorCode = 1
           print("cannot open textgrid")
           print(plainTextname)
+          message("cannot open textgrid")
+          message(plainTextname)
           
           #remove if statement afterwards i think 
           if(errorCode==1){ 
@@ -1280,12 +1282,24 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
     
     if (!is.na(layersAll[[item]])[[1]]){
       temporaryTraces <- temporaryTraces[sapply(expandedTraces$layer, function(x) any(layersAll[[item]] %in% x)),]
+      if (nrow(temporaryTraces) == 0){
+        message(paste("layer " , layersAll[[item]], " does not exist in dataset"))
+        next
+      }
     }
     if (!is.na(tiernameAll[[item]])[[1]]){
       temporaryTraces <- temporaryTraces[sapply(temporaryTraces$tiers_list, function(x) any(tiernameAll[[item]] %in% x)),]
+      if (nrow(temporaryTraces) == 0){
+        message(paste("tiername " , tiernameAll[[item]], " does not exist within layer ", layersAll[[item]]))
+        next
+      }
     }
     if (!is.na(categoriesAll[[item]])[[1]]){
-      temporaryTraces <- temporaryTraces[sapply( temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
+      temporaryTraces <- temporaryTraces[sapply(temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
+      if (nrow(temporaryTraces) == 0){
+        message(paste("segment " , categoriesAll[[item]], " does not exist within toer ", tiernameAll[[item]]))
+        next
+      }
     }
     if (!( (is.na(layersAll[[item]])[[1]] && is.na(tiernameAll[[item]])[[1]]) && is.na(categoriesAll[[item]])[[1]]) ){
       if (mergeCategories[[item]] == TRUE){
@@ -1411,9 +1425,10 @@ rawTraces
 #plotTraces(rawTraces, tiernameAll = c("cons2", NA), categoriesAll = list(c('sˠ.#_C.j'), NA), layersAll = c('tongue', 'palate'))
 #plotTraces(rawTraces, tiernameAll = c("cons2", NA), categoriesAll = list(c('sˠ.#_C.j'), NA), layersAll = c('tongue', 'palate'))
 
-# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'zʲ.V_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'zˠ.V_#.F'), c('zˠ.V_#.M', 'zˠ.V_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), mergeCategories = TRUE, maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "SˠV[mid]", "SʲV[+bk]", "SˠV[+bk]", "Palate"))
+plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'zʲ.V_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'zˠ.V_#.F'), c('zˠ.V_#.M', 'zˠ.V_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), mergeCategories = TRUE)
+#, maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "SˠV[mid]", "SʲV[+bk]", "SˠV[+bk]", "Palate"))
 
-plotTraces(rawTraces, mergeCategories = c(TRUE), pdf.filename = "tatarkq.pdf", tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments", NA), categoriesAll = list(c('a'), c('i'), c('ʊ'), c('u'), c('ʏ'), c('y'), c('ə'), c('ɘ'), NA), layersAll = c('Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Palate'), maskCategories = c("a", "i", "ʊ", "u", "ʏ", "y", "ə", "ɘ", "Palate"), means.styles = c(1,1,2,2,3,3,4,4,1))
+# plotTraces(rawTraces, mergeCategories = c(TRUE), pdf.filename = "tatarkq.pdf", tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments", NA), categoriesAll = list(c('a'), c('i'), c('ʊ'), c('u'), c('ʏ'), c('y'), c('ə'), c('ɘ'), NA), layersAll = c('Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Palate'), maskCategories = c("a", "i", "ʊ", "u", "ʏ", "y", "ə", "ɘ", "Palate"), means.styles = c(1,1,2,2,3,3,4,4,1))
 
 # plotTraces(rawTraces, categoriesAll = list(c("Tongue"), c("Palate")))
 

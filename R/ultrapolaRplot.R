@@ -568,6 +568,8 @@ loadAllTracesMidPoint <- function(directory_name){
           errorCode = 1
           print("cannot open textgrid")
           print(plainTextname)
+          message("cannot open textgrid")
+          message(plainTextname)
           
           #remove if statement afterwards i think 
           if(errorCode==1){ 
@@ -1179,12 +1181,24 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
     
     if (!is.na(layersAll[[item]])[[1]]){
       temporaryTraces <- temporaryTraces[sapply(expandedTraces$layer, function(x) any(layersAll[[item]] %in% x)),]
+      if (nrow(temporaryTraces) == 0){
+        message(paste("layer " , layersAll[[item]], " does not exist in dataset"))
+        next
+      }
     }
     if (!is.na(tiernameAll[[item]])[[1]]){
       temporaryTraces <- temporaryTraces[sapply(temporaryTraces$tiers_list, function(x) any(tiernameAll[[item]] %in% x)),]
+      if (nrow(temporaryTraces) == 0){
+        message(paste("tiername " , tiernameAll[[item]], " does not exist within layer ", layersAll[[item]]))
+        next
+      }
     }
     if (!is.na(categoriesAll[[item]])[[1]]){
-      temporaryTraces <- temporaryTraces[sapply( temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
+      temporaryTraces <- temporaryTraces[sapply(temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
+      if (nrow(temporaryTraces) == 0){
+        message(paste("segment " , categoriesAll[[item]], " does not exist within toer ", tiernameAll[[item]]))
+        next
+      }
     }
     if (!( (is.na(layersAll[[item]])[[1]] && is.na(tiernameAll[[item]])[[1]]) && is.na(categoriesAll[[item]])[[1]]) ){
       if (mergeCategories[[item]] == TRUE){
@@ -1200,10 +1214,8 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
         filteredTraces <- rbind(filteredTraces, temporaryTraces)
       }
     }
-    
   }
   return(data.frame(filteredTraces))
-  
 }
 
 plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE), origin.algorithm = "BottomMiddle", origin.x = NA,
