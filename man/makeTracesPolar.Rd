@@ -16,9 +16,12 @@ scaling.factor = 800/600)
 
 \arguments{
   \item{rawTraces}{data frame returned from loadTraces()}
-  \item{origin.algorithm}{takes list of all extracted x-coordinates and sets}
-  \item{origin.x}{override x coordinate of origin}
+  \item{origin.algorithm}{shifts x coordinates so that they are symmetrical
+  around y-axis, used for plotting}
+  \item{origin.x}{override x coordinate of origin.algorithm}
   \item{scaling.factor}{default 800/600}
+  \item{x_coor}{used for calculating radius distances}
+  \item{y_coor}{used for calculating radius distances}
 }
 
 \value{

@@ -17,7 +17,7 @@ plotTraces(rawTraces, polarTraces, interval = 1, mean.lines =
                  0.37, pdf.filename = c(), bands.linewidth = 0.3,
                  png.filename = c(), legend.linewidth = 5,
                  means.linewidth = 3, tick.size = 2, maskCategories =
-                 c())
+                 c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)))
 }
 
 \arguments{
@@ -51,6 +51,7 @@ plotTraces(rawTraces, polarTraces, interval = 1, mean.lines =
   \item{legend.size}{size of legend (default = 0.6)}
   \item{legend.linewidth}{size of displayed legend lines }
   \item{maskCategories}{array to override current segment labels}
+  \item{rays}{list of rays, each specified by its x_coor, y_coor, and angle}
 }
 \value{
   Returns a plot. User can additionally export plot to a pdf or png.

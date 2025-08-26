@@ -8,7 +8,7 @@
 }
 
 \usage{
-loadTraces(directory_name)
+loadAllTracesMidPoint(directory_name)
 }
 
 \arguments{
@@ -19,6 +19,6 @@ loadTraces(directory_name)
 }
 
 \value{
-  Returns an unfiltered dataframe of filename, specific annotation number, segments,
-  x-coordinate, y-coordinate, tiers, and layer.
+  Returns an unfiltered dataframe of filename, specific annotation number, 
+  segments, x-coordinate, y-coordinate, tiers, and layer.
 }

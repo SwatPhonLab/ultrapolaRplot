@@ -838,7 +838,7 @@ identifyPlotBounds <- function(polarTraces){
   return(c(xmin, xmax, ymin, ymax))
 }
 
-formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, scaling.factor = 800/600){
+formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, scaling.factor = 800/600, x_coor = 0, y_coor = 0){
   polarTraces <- list()
   
   for (segment in 1:length(dataOfEachCurveNNj)){
@@ -856,8 +856,9 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
       
       anglevalues <- list()
       
+      #angles in relation to origin (x_coor, y_coor) default (0, 0)
       for (j in 1: n_cols){
-        anglevalues <- append(anglevalues, atan2(yvalues[[j]], xvalues[[j]]) )
+        anglevalues <- append(anglevalues, atan2((yvalues[[j]] - y_coor), (xvalues[[j]] - x_coor)))
       }
       
       #sort by angle
@@ -872,8 +873,8 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
       for (j in 1:n_cols){
         myCurveMatrix[1,j] <- xvaluesSorted[[j]]
         myCurveMatrix[2,j] <- yvaluesSorted[[j]]
-        myCurveMatrix[3,j] <- anglevalues[[j]] #angle in relation to (0,0)
-        myCurveMatrix[4,j] <- (yvaluesSorted[[j]]^2 + xvaluesSorted[[j]]^2)^.5 #radius in relation to (0,0)
+        myCurveMatrix[3,j] <- anglevalues[[j]] 
+        myCurveMatrix[4,j] <- ((yvaluesSorted[[j]] - y_coor)^2 + (xvaluesSorted[[j]] - x_coor)^2)^.5 #radius in relation to (0,0)
         
       }
       
@@ -930,6 +931,61 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
   
   } #end angle ray for loop 
   return(matrixIntersection) # columns for rays
+}
+
+find_intersection_with_ray_difference_plot <- function(formatedData, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle = 1.57){ #ie compiledList
+  
+  matrixIntersection <- list()
+  
+  #start set up unique segment 
+  for (segment in 1:length(uniqueSegments)){
+    matrixIntersection[[uniqueSegments[[segment]]]] <- matrix(NA, nrow = length(formatedData[[segment]]), ncol = 1)
+  }
+  #end set up
+  count <- 0
+  #for each extending radius
+  for (angleRay in c(angle)){
+    count <- count + 1
+    for (segment in 1:length(uniqueSegments)){ #and for each segment
+      
+      for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment (alphabetical??)
+        if (length(formatedData[[segment]][[individualTrace]][1, all()])-1 > 1){
+          for (individualPoint in 1:(length(formatedData[[segment]][[individualTrace]][1, all()])-1)){ #for each point on the trace, find intersection
+            #find the right two points the angle falls between for each individual trace
+            
+            if (angleRay <= formatedData[[segment]][[individualTrace]][3, individualPoint +1]){
+              if (angleRay >= formatedData[[segment]][[individualTrace]][3, individualPoint]){ 
+                
+                #print("found intersection with the following ray angle")
+                
+                myIntersection <- calculateIntersection2(
+                  
+                  (formatedData[[segment]][[individualTrace]][4,individualPoint]), 
+                  (formatedData[[segment]][[individualTrace]][4,individualPoint + 1]), 
+                  (formatedData[[segment]][[individualTrace]][3,individualPoint]), 
+                  angleRay, 
+                  (formatedData[[segment]][[individualTrace]][3,individualPoint + 1]) 
+                  
+                )
+                
+                if (is.na(myIntersection)){
+                  print("NA FOUND:", angleRay/rayIncrement)
+                }
+                matrixIntersection[[segment]][[individualTrace, count]] <- myIntersection
+                break
+              }
+            }
+            
+          }
+        }
+        
+        
+      } #end individual trace for loop 
+      
+    } #end segment for loop
+    
+  } #end angle ray for loop
+  return(matrixIntersection) # columns for rays
 } 
 
 plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
@@ -938,7 +994,7 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
                             standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
                             plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
-                            maskCategories = c()){
+                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57))){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   
@@ -993,13 +1049,6 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
         ySDLow[[segment]] <-  append(ySDLow[[segment]], -1*sin(i*rayIncrement) *standardDeviation[[segment]][[i]] + averagedRY[[segment]][[i]])
         
       }
-      # else{
-      #   xSDHigh[[segment]]<- append(xSDHigh[[segment]], NA)
-      #   xSDLow[[segment]] <-  append( xSDLow[[segment]], NA)
-      #   
-      #   ySDHigh[[segment]] <- append(ySDHigh[[segment]], NA)
-      #   ySDLow[[segment]] <-  append(ySDLow[[segment]], NA)
-      # }
       
     }
   }
@@ -1009,10 +1058,6 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   
   x_ticks <- c(round(plotbounds[[1]],2), round(xPlotAverage,2), round(plotbounds[[2]],2))
   y_ticks <- c(round(plotbounds[[3]],2), round(yPlotAverage,2), round(plotbounds[[4]],2))
-  #else {
-  #still have "ticks" just way out of bounds so that they don't show up
-  # x_ticks <- c(round(plotbounds[[1]],2) + 3, round(xPlotAverage,2) + 3, round(plotbounds[[2]],2) + 3)
-  # y_ticks <- c(round(plotbounds[[3]],2) + 2, round(yPlotAverage,2) + 2, round(plotbounds[[4]],2) + 2)
   
   if(plot.labels == TRUE){
     x_ticks_lables <- c(round(plotbounds[[1]],2)*100, round(xPlotAverage,2)*100, round(plotbounds[[2]],2)*100)
@@ -1023,11 +1068,7 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   }
   
   if (length(pdf.filename)!=0){
-    #pdf.options(encoding="MacRoman")
-    #pdf.options(encoding = "utf-8")
     cairo_pdf(filename = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05))
-    #cairo_pdf(file = pdf.filename, family = "DejaVu Serif")
-    # cairo_pdf(file = pdf.filename, family = "DejaVu Serif", width = 22, height = 22)
   }
   
   if (length(png.filename)!=0){
@@ -1037,7 +1078,6 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   
   oldpar <- par(no.readonly = TRUE)
   on.exit(par(oldpar))
-  #par(pty = "s")
   par(mar = c(0, 4.4, 0, 1.25) + 2)
   
   
@@ -1070,9 +1110,6 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
     x2 <- rev(unlist(lapply(xSDHigh[[segment]], function(x) na.omit(x)), recursive = TRUE))
     y2 <- rev(unlist(lapply(ySDHigh[[segment]], function(x) na.omit(x)), recursive = TRUE))
     
-    
-    #print(xSDHigh[[segment]])
-    
     #Plot the upper lower standard devation lines
     if (bands.lines == TRUE){
       lines(x1, y1, type = standard.deviation.styles, col = paletteColors[[segment]], lwd = bands.linewidth)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
@@ -1104,9 +1141,13 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
       }
     }
     
-    # if (length(pdf.filename) == 0 && length(png.filename) == 0){
-    #   legend.size = 0.6
-    # }
+    for (ray in 1:length(rays)){
+      if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
+        points(rays[[ray]][[1]], rays[[ray]][[2]], col = "red", pch = 19)
+        segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = "red", lwd = 2, lty = 2)
+      }
+    }
+    
     
     ltyNumerical = means.styles
     
@@ -1134,8 +1175,7 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   
 }
 
-makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600){
-  
+makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600, x_coor = 0, y_coor = 0){
   uniqueSegments <- get_unique_segments(rawTraces)
   dataOfEachCurveNNj <- read_in_data(rawTraces)
   xaverage <- identifyXAverage(rawTraces)
@@ -1149,7 +1189,7 @@ makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin
     origin.x = xaverage
   }
   
-  polarTraces <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x, scaling.factor = scaling.factor)
+  polarTraces <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x, scaling.factor = scaling.factor, x_coor = x_coor, y_coor = y_coor)
   return(polarTraces)
 }
 
@@ -1225,7 +1265,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE,
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
-                       maskCategories = c()){
+                       maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57))){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1248,13 +1288,17 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                   plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename,
                   bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                   legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
-                  maskCategories = maskCategories)
+                  maskCategories = maskCategories, rays = rays)
+  return(rawTraces)
 }
 
-differencePlot <- function(rawTraces, polarTraces, interval = 1){
-  rayIncrement = 3.14159/180 * interval #30 degree for test
-  uniqueSegments <- get_unique_segments(rawTraces)
-  dataOfEachCurveNNj <- read_in_data(rawTraces)
+differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600, x_coor = 0, y_coor = 0, interval = 1, singleIncrements = TRUE){
+  
+  polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
+  
+  rayIncrement = 3.14159/180 * interval 
+  uniqueSegments <- get_unique_segments(filteredTraces)
+  dataOfEachCurveNNj <- read_in_data(filteredTraces)
   
   matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
@@ -1264,12 +1308,10 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
   rayIncrement <- 1
   plotbounds <- identifyPlotBounds(polarTraces)
   
-  #scalingFactor <- 100 #how to calculate
-  
   for (ray in 1:length(matrixIntersection[[1]][1, all()])){
     #[[1]] and [[2]] for matrixIntersection ONLY
     if (!is.na(colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray]]) && !is.na(colMeans(matrixIntersection[[2]], na.rm = TRUE)[[ray]]) ){ 
-      #both are not empty... because no point taking difference of like 16.59 - NA right?
+      #both are not empty
       segment1 <- (matrixIntersection[[1]][all(), ray])[!is.na(matrixIntersection[[1]][all(), ray])]
       segment2 <- (matrixIntersection[[2]][all(), ray])[!is.na(matrixIntersection[[2]][all(), ray])]
       
@@ -1283,9 +1325,8 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
       differences <- unlist(differences)
       meanDifference <- append(meanDifference, mean(differences))
       standardDeviation <- append(standardDeviation, sd(differences))
-      #what is proper scaling? 
-      #redLine <- append(redLine, mean(differences)/(scalingFactor*sd(differences)))
       redLine <- append(redLine, mean(differences)/(sd(differences)))
+      
     }else{
       #for consistency when matching up with the angle loop
       meanDifference <- append(meanDifference, NA)
@@ -1327,7 +1368,6 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
   ZscoreRange <- max(na.omit(unlist(redLine))) - min(na.omit(unlist(redLine)))
   #scales Z score line to fit the range of plot (mean difference line)
   scalingFactor <- ZscoreRange/(max(y2) - min(y1))
-  #print(scalingFactor)
   #+ additional range (if there are more negative z scores)
   
   redLine2 <- lapply(unlist(redLine), function(x) x/scalingFactor)
@@ -1340,21 +1380,9 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
     additionalRoom2 <- 0
   }
   scalingFactor <- ZscoreRange/(max(y2) - min(y1) - additionalRoom - additionalRoom2 - 0.02)
-  #print(scalingFactor)
   redLine <- lapply(unlist(redLine), function(x) x/scalingFactor)
-  # labelsList <- c(round(min(x1)*180/pi), round((min(x1) + max(x2)/2)*180/pi), round(max(x2)*180/pi))
-  # x_ticks <- c(round(plotbounds[[1]],2), round((plotbounds[[2]] + plotbounds[[1]])/2,2), round(plotbounds[[2]],2))
-  #meanDifference
   
-  axisX2 <- list()
-  axisX2 <- lapply(meanX, function(x) round(x*180/pi))
-  axisX2 <- seq(1,length(matrixIntersection[[1]][1,all()]), interval)
-  #axisX2 <- lapply(axisX2, function(x) -(x-90))
   axisX <- lapply(lapply(meanX, function(x) x*180/pi), function(x) round(x))
-  
-  #total range for z score is 
-  
-  #print(ZscoreRange)
   
   #nicely distributed and readable z scores, 5 labels
   ZScorePositioning <- list()
@@ -1367,28 +1395,11 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
   ZScoreLabels <- list()
   ZScoreLabels <- lapply(ZScorePositioning, function(x) round(x*scalingFactor,1))
   
-  #code for increments of 1 
-  # for (i in 1:round(max(na.omit(unlist(redLine)))*scalingFactor)){
-  #   ZScoreLabels <- append(ZScoreLabels, round(max(na.omit(unlist(redLine)))*scalingFactor/round(max(na.omit(unlist(redLine)))*scalingFactor)*i,1))
-  # }
-  # 
-  # for (i in round(min(na.omit(unlist(redLine)))*scalingFactor):-1){
-  #   #ZScoreLabels <- append(ZScoreLabels, i)
-  #   ZScoreLabels <- append(ZScoreLabels, round(max(na.omit(unlist(redLine)))*scalingFactor/round(max(na.omit(unlist(redLine)))*scalingFactor)*i,1))
-  # }
-  # ZScoreLabels <- sort(unlist(ZScoreLabels))
-  # print(ZScoreLabels)
-  
-  #want it to clearly go through 0, however, 0 is very close but not quite due to rounding. 
-  #replacing zero..
-  # ZScorePositioning <- seq(min(na.omit(unlist(redLine))), max(na.omit(unlist(redLine))), length.out = length(ZScoreLabels))
-  # indexZero <- which(ZScoreLabels == 0)
-  # ZScorePositioning <- replace(ZScorePositioning, indexZero, 0)
-  # print(ZScorePositioning)
-  
-  secondYAxis <- seq(min(y1), max(y2), (max(y2) - min(y1))/6)
-  secondYAxisBetterPositioned <- lapply(secondYAxis, function(x) round(x,2))
-  secondYAxisLabes <- lapply(secondYAxis, function(x) round(x*scalingFactor,2))
+  #increments of one, just need to scale to red line
+  additionalLightLines <- list()
+  for (i in seq(round(min(unlist(ZScoreLabels))), round(max(unlist(ZScoreLabels))),1)){
+    additionalLightLines <- append(additionalLightLines, i/scalingFactor)
+  }
   
   #starting plotting
   oldpar <- par(no.readonly = TRUE)
@@ -1399,26 +1410,83 @@ differencePlot <- function(rawTraces, polarTraces, interval = 1){
   plot(meanX, meanDifference, type = "l", col = "blue", lwd = 2, ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", ylab = "mean difference")
   #labelling x axis with degree from origin
   axis(1, at = meanX, labels = axisX, tck = 0)
-  
-  #axis(side=4, at = secondYAxis, labels=secondYAxisLabes, col="red", col.axis="black")
   axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="red", col.axis="black")
   mtext("z score", side = 4, line = 3)
   
-  lines(x1, y1, col = "blue", type = "l", lwd = 1)#, ylim = c(ymin, ymax), xlim = c(xmin, xmax))
+  lines(x1, y1, col = "blue", type = "l", lwd = 1)
   lines(x2, y2, col = "blue", type = "l", lwd = 1)
   polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor( "blue", alpha.f = 0.37), border = NA)
   
   lines(meanX, unlist(redLine), col = "red", lwd = 2)
   abline(h=0.0, lty = 2)
-  #abline(h=seq(min(y1), max(y2), (max(y2) - min(y1))/6), col="red", lty="dotted")
   abline(h= ZScorePositioning, col="red", lty="dotted")
   
+  #increments of one for z score
+  if (singleIncrements){
+    for (line in 1:length(additionalLightLines)){
+      abline(h = additionalLightLines[[line]], col = "pink", lty="dotted", lwd = 1)
+    }
+  }
+  
+  #vertical lines at min and max of z score
   indices <- which(unlist(redLine) %in% min(unlist(redLine), na.rm = TRUE))
-  #print(redLine[[indices]])
   abline(v = unlist(meanX)[[indices]], col = "red")
-  
   indices <- which(unlist(redLine) %in% max(unlist(redLine), na.rm = TRUE))
-  #print(redLine[[indices]])
   abline(v = unlist(meanX)[[indices]], col = "red")
   
+}
+
+pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
+                                scaling.factor = 800/600, x_coor = 0, y_coor = 0, angle = 1){
+  
+  polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
+  
+  rayIncrement = 3.14159/180 * interval 
+  uniqueSegments <- get_unique_segments(filteredTraces)
+  dataOfEachCurveNNj <- read_in_data(filteredTraces)
+  
+  matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle)
+  differences <- sapply(matrixIntersection, function(x) t(x))
+  
+  values <- c()
+  categories <- c()
+  
+  remove_categories <- c()
+  for (category in 1:(length(names(differences)))){
+    if (length(differences[[category]]) == sum(is.na(differences[[category]]))){
+      remove_categories <- append(remove_categories, category)
+    }
+  }
+  
+  differences2 <- data.frame()
+  if (length(remove_categories) != 0){
+    differences2 <- differences[-(remove_categories)]
+  }else{
+    differences2 <- differences
+  }
+  
+  values <- as.vector(unlist(differences2))
+  number_col <- as.vector(sapply(differences2, function(x) length(x)))
+  
+  for (category in 1:(length(names(differences2)))){
+    categories <- append(categories, sapply(names(differences2)[[category]], function(x) rep(x, each = number_col[[category]])))
+  }
+  
+  intersections_grouped <- data.frame(values, categories)
+  pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, na.rm = TRUE, p.adjust.method = "bonferroni")
+  #null hypothesis -- all group means are equal
+  distances <- intersections_grouped$values
+  segments <- intersections_grouped$categories
+  #anova_results <- aov(distances ~ segments)
+  #Turkey HSD differences in means should not be 0
+  anova_fit <- lm(distances ~ segments)
+  posthoc <- TukeyHSD(aov(anova_fit))
+  plot(posthoc, cex.axis = .6)
+  #summary(anova_fit) model to see which vowels significant in predicting category -- not rlly wanted? 
+  #anova_model <- lm(values ~ categories, data = intersections_grouped)
+  #turkey_results <- TurkeyHSD(anova_results)
+  boxplot(distances ~ segments)
+  #qqnorm(distances) #would be nice to group by segments
+  #summary(anova_results) p-value for whether some of the groups have signifanct mean differences
+  return(pairwise_results) #or anova(anova_fit)
 }
