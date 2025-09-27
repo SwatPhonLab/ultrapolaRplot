@@ -994,7 +994,8 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
                             standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
                             plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
-                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57))){
+                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays = FALSE,
+                            quartile_points = FALSE){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   
@@ -1026,6 +1027,16 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
     standardDeviation[[segment]] <- unlist(standardDeviation[[segment]])
   }
   
+  #calculating slopes, making sure it matches up
+  slopes_segments = list()
+  for (segment in 1:length(uniqueSegments)){
+    segment_slope <- find_curvature(averagedRX[[uniqueSegments[[segment]]]], averagedRY[[uniqueSegments[[segment]]]])
+    slopes_segments[[uniqueSegments[[segment]]]] <- segment_slope
+  }
+  
+  df <- do.call(rbind, slopes_segments)
+  averaged_everything <- colMeans(df)
+  print(averaged_everything)
   
   #we now have the standard deviation
   xSDHigh <- list()
@@ -1100,7 +1111,6 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
     paletteColors <- palette
   }
   
-  
   for (segment in 1:length(uniqueSegments)){
     #Shading
     x1 <- rev(unlist(lapply(xSDLow[[segment]], function(x) na.omit(x)), recursive = TRUE))
@@ -1141,14 +1151,6 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
       }
     }
     
-    for (ray in 1:length(rays)){
-      if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
-        points(rays[[ray]][[1]], rays[[ray]][[2]], col = "red", pch = 19)
-        segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = "red", lwd = 2, lty = 2)
-      }
-    }
-    
-    
     ltyNumerical = means.styles
     
     numberColumns = 1
@@ -1169,10 +1171,37 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
     }
   }
   
+  for (ray in 1:length(rays)){
+    if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
+      points(rays[[ray]][[1]], rays[[ray]][[2]], col = "red", pch = 19)
+      segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = "red", lwd = 2, lty = 2)
+    }
+  }
+  
+  if (parallelRays){
+    points(averaged_everything[[5]], averaged_everything[[6]], col = "black", pch = 19)
+    segments(averaged_everything[[5]], averaged_everything[[6]], averaged_everything[[11]], averaged_everything[[6]]+
+               -1*averaged_everything[[1]]*(averaged_everything[[5]] - averaged_everything[[11]]), col = "black", lwd = 3, lty = 2)
+    segments(averaged_everything[[5]], averaged_everything[[6]], averaged_everything[[12]], averaged_everything[[6]] +
+               averaged_everything2[[2]]*(averaged_everything[[12]] - averaged_everything[[5]]), col = "black", lwd = 3, lty = 2)
+    
+    points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
+    points(averaged_everything[[9]], averaged_everything[[10]], col = "purple", pch = 19, cex = 1.5)
+  }
+  
+  if (quartile_points){
+    for (segment in 1:length(uniqueSegments)){
+      points(slopes_segments[[uniqueSegments[[segment]]]][[7]], slopes_segments[[segment]][[8]], col = "red", pch = 19)
+      points(slopes_segments[[uniqueSegments[[segment]]]][[9]], slopes_segments[[segment]][[10]], col = "blue", pch = 19)
+      points(slopes_segments[[uniqueSegments[[segment]]]][[5]], slopes_segments[[segment]][[6]], col = "black", pch = 19)
+    }
+  }
+  
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
     dev.off()
   }
   
+  return(slopes_segments)
 }
 
 makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600, x_coor = 0, y_coor = 0){
@@ -1258,6 +1287,54 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
   return(data.frame(filteredTraces))
 }
 
+find_curvature <- function(xargs, yargs){
+  
+  x_args <- rev(xargs[!is.na(xargs)])
+  y_args <- rev(yargs[!is.na(yargs)])
+  
+  
+  chordlength <- ceiling(length(x_args)/2)
+  distances <- list()
+  
+  for (point in 1:(length(x_args) - chordlength)){
+    x_1 = x_args[point]
+    x_2 = x_args[point + chordlength]
+    y_1 = y_args[point]
+    y_2 = y_args[point + chordlength]
+    x_middle = (x_1 + x_2)/2
+    y_middle = (y_1 + y_2)/2
+    
+    curve_x = x_args[point + chordlength/2]
+    curve_y = y_args[point + chordlength/2]
+    
+    distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
+    distances <- append(distances, distance)
+  }
+  distances <- unlist(distances)
+  
+  split_index <- which(distances == max(distances))
+  x_split_less = x_args[1:(split_index + chordlength/2)]
+  x_split_more = x_args[(split_index + chordlength/2 + 1):length(x_args)]
+  
+  y_split_less = y_args[1:(split_index + chordlength/2)]
+  y_split_more = y_args[(split_index + chordlength/2 + 1):length(y_args)]
+  
+  lm_front <- coef(lm(y_split_less ~ x_split_less))
+  lm_back <- coef(lm(y_split_more ~ x_split_more))
+  # print(x_args)
+  center_x_split <- x_args[split_index + chordlength/2]
+  center_y_split <- y_args[split_index + chordlength/2]
+  index_center <- split_index + chordlength/2
+  
+  
+  x_min <- x_args[1]
+  x_max <- x_args[length(x_args)]
+  #double check x_indexes
+  #can improve this to return "percentages" along the line
+  return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center)/2], y_args[index_center + (length(x_args) - index_center)/2], x_min, x_max))
+  
+}
+
 plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE), origin.algorithm = "BottomMiddle", origin.x = NA,
                        scaling.factor = 800/600, 
                        interval = 1, mean.lines = TRUE, points.display = FALSE,
@@ -1265,7 +1342,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE,
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
-                       maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57))){
+                       maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays = FALSE,
+                       quartile_points = FALSE){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1280,15 +1358,16 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
   
   matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  plotStyleTraces(matrixIntersection = matrixIntersection, polarTraces = polarTraces, 
-                  dataOfEachCurveNNj = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, 
-                  rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display,
-                  palette = palette, bands.lines = bands.lines, legend.position = legend.position, 
-                  bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles,
-                  plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename,
-                  bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
-                  legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
-                  maskCategories = maskCategories, rays = rays)
+  rx <- plotStyleTraces(matrixIntersection = matrixIntersection, polarTraces = polarTraces, 
+                        dataOfEachCurveNNj = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, 
+                        rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display,
+                        palette = palette, bands.lines = bands.lines, legend.position = legend.position, 
+                        bands.fill = bands.fill, means.styles = means.styles, standard.deviation.styles = standard.deviation.styles,
+                        plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename,
+                        bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
+                        legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
+                        maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points = quartile_points)
+  #return(rx)
   return(rawTraces)
 }
 
