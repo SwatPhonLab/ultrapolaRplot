@@ -994,8 +994,9 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
                             standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
                             plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
-                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays = FALSE,
-                            quartile_points = FALSE){
+                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays =
+                              FALSE,
+                            quartile_points = FALSE, perpendicularRays = FALSE){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   
@@ -1034,6 +1035,7 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
     slopes_segments[[uniqueSegments[[segment]]]] <- segment_slope
   }
   
+  #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
   print(averaged_everything)
@@ -1171,6 +1173,24 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
     }
   }
   
+  perp_l = -1/averaged_everything[[1]]
+  perp_m = -1/averaged_everything[[2]]
+  
+  #take midpoint
+  #take max x and min y out of this for red point
+  max_xl = max(df[, 7]) + sd(df[, 7])
+  min_yl = min(df[, 8]) - sd(df[, 8])
+  min_xm = min(df[, 9]) - sd(df[, 9])
+  min_ym = min(df[, 10]) - sd(df[, 10])
+  
+  if (perpendicularRays){
+    points(max_xl, min_yl, col = "pink", pch = 19)
+    segments(max_xl, min_yl, averaged_everything[[11]], min_yl - perp_l*(max_xl - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
+    
+    points(min_xm, min_ym, col = "pink", pch = 19)
+    segments(min_xm, min_ym, averaged_everything[[12]], min_ym + perp_m*(averaged_everything[[12]] - min_xm), col = "pink", lwd = 2, lty = 2)
+  }
+  
   for (ray in 1:length(rays)){
     if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
       points(rays[[ray]][[1]], rays[[ray]][[2]], col = "red", pch = 19)
@@ -1181,12 +1201,13 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   if (parallelRays){
     points(averaged_everything[[5]], averaged_everything[[6]], col = "black", pch = 19)
     segments(averaged_everything[[5]], averaged_everything[[6]], averaged_everything[[11]], averaged_everything[[6]]+
-               -1*averaged_everything[[1]]*(averaged_everything[[5]] - averaged_everything[[11]]), col = "black", lwd = 3, lty = 2)
+               -1*averaged_everything[[1]]*(averaged_everything[[5]] - averaged_everything[[11]]), col = "black", lwd = 2, lty = 2)
     segments(averaged_everything[[5]], averaged_everything[[6]], averaged_everything[[12]], averaged_everything[[6]] +
-               averaged_everything2[[2]]*(averaged_everything[[12]] - averaged_everything[[5]]), col = "black", lwd = 3, lty = 2)
+               averaged_everything[[2]]*(averaged_everything[[12]] - averaged_everything[[5]]), col = "black", lwd = 2, lty = 2)
     
-    points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
-    points(averaged_everything[[9]], averaged_everything[[10]], col = "purple", pch = 19, cex = 1.5)
+    #add in parameter
+    # points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
+    # points(averaged_everything[[9]], averaged_everything[[10]], col = "purple", pch = 19, cex = 1.5)
   }
   
   if (quartile_points){
@@ -1343,7 +1364,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays = FALSE,
-                       quartile_points = FALSE){
+                       quartile_points = FALSE, perpendicularRays = FALSE){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1366,7 +1387,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename,
                         bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                         legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
-                        maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points = quartile_points)
+                        maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
+                          quartile_points, perpendicularRays = perpendicularRays)
   #return(rx)
   return(rawTraces)
 }
