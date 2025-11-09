@@ -988,18 +988,17 @@ find_intersection_with_ray_difference_plot <- function(formatedData, dataOfEachC
   return(matrixIntersection) # columns for rays
 } 
 
-plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
+plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
                             rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(),
                             bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", 
                             standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
                             plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
-                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays =
+                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57, col_r = c())), parallelRays =
                               FALSE,
-                            quartile_points = FALSE, perpendicularRays = FALSE){
+                            quartile_points = FALSE, perpendicularRays = FALSE, h = 2){
   
   plotbounds <- identifyPlotBounds(polarTraces)
-  
   standardDeviation <- list()
   averagedRX <- list()
   averagedRY <- list()
@@ -1081,7 +1080,7 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   }
   
   if (length(pdf.filename)!=0){
-    cairo_pdf(filename = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05))
+    cairo_pdf(filename = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05), onefile = TRUE)
   }
   
   if (length(png.filename)!=0){
@@ -1192,23 +1191,82 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   }
   
   for (ray in 1:length(rays)){
+    col_user = "pink"
+    if (rays[[ray]][[4]] != 0){
+      col_user = rays[[ray]][[4]]
+    }
+    rays[[ray]][[4]] = 0
     if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
-      points(rays[[ray]][[1]], rays[[ray]][[2]], col = "red", pch = 19)
-      segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = "red", lwd = 2, lty = 2)
+      points(rays[[ray]][[1]], rays[[ray]][[2]], col = col_user, pch = 19)
+      segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = col_user, lwd = 2, lty = 2)
     }
   }
+  #not averaged everything, depending on h = 0 min, h = 1 at least 1 point, h = 2, standard deviation so 2nd min from each segment
+  #change starting point
+  #c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max)
+  
+  #centered intersection point
+  x_int <- (averaged_everything[[4]] - averaged_everything[[3]]) / (averaged_everything[[1]] - averaged_everything[[2]])
+  y_int <- averaged_everything[[1]]*x_int + averaged_everything[[3]]
+  
+  #farthest point
+  if (h == 0){
+    start_xl = min(df[, 11])
+    y_xl = df[which.min(df[, 11]), 13]
+    b2 <- y_xl - perp_l * start_xl
+    
+    x_adjusted_l <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
+    y_adjusted_l <- averaged_everything[[1]] * x_adjusted_l +  averaged_everything[[3]]
+    
+    end_xm = max(df[, 12])
+    y_xm = df[which.max(df[, 12]), 14]
+    b2 <- y_xm - perp_m * end_xm
+    x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
+    y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
+    
+  }
+  
+  #one annotation each
+  if (h == 1){
+    start_xl = max(df[, 11])
+    y_xl = df[which.max(df[, 11]), 13] #add in respective x coor
+    b2 <- y_xl - perp_l * start_xl
+    
+    x_adjusted_l <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
+    y_adjusted_l <- averaged_everything[[1]] * x_adjusted_l +  averaged_everything[[3]]
+    
+    end_xm = min(df[, 12])
+    y_xm = df[which.min(df[, 12]), 14]
+    b2 <- y_xm - perp_m * end_xm
+    x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
+    y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
+  }
+  
+  #averaged
+  # if (h == 2){
+  #   start_xl = averaged_everything[[11]]
+  #   end_xl = averaged_everything[[5]]
+  #   center_l = averaged_everything[[6]]
+  #   y_xl = center_l - averaged_everything[[1]] * (end_xl - start_xl)
+  #   
+  #   start_xm = averaged_everything[[5]]
+  #   end_xm = min(df[, 12])
+  #   center_m = averaged_everything[[6]]
+  #   y_xm = center_m + averaged_everything[[2]] * (end_xm - start_xm)
+  # }
+  
   
   if (parallelRays){
-    points(averaged_everything[[5]], averaged_everything[[6]], col = "black", pch = 19)
-    segments(averaged_everything[[5]], averaged_everything[[6]], averaged_everything[[11]], averaged_everything[[6]]+
-               -1*averaged_everything[[1]]*(averaged_everything[[5]] - averaged_everything[[11]]), col = "black", lwd = 2, lty = 2)
-    segments(averaged_everything[[5]], averaged_everything[[6]], averaged_everything[[12]], averaged_everything[[6]] +
-               averaged_everything[[2]]*(averaged_everything[[12]] - averaged_everything[[5]]), col = "black", lwd = 2, lty = 2)
-    
-    #add in parameter
-    # points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
-    # points(averaged_everything[[9]], averaged_everything[[10]], col = "purple", pch = 19, cex = 1.5)
+    # points(start_xl, y_xl, col = "black", pch = 19)
+    # points(start_xm, y_xm, col = "black", pch = 19)
+    points(x_int, y_int, col = "black", pch = 19)
+    segments(x_adjusted_l, y_adjusted_l, x_int, y_int, col = "black", lwd = 2, lty = 2)
+    segments(x_int, y_int, x_adjusted_m, y_adjusted_m, col = "black", lwd = 2, lty = 2)
   }
+  
+  #   #add in parameter
+  #   # points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
+  #   # points(averaged_everything[[9]], averaged_everything[[10]], col = "purple", pch = 19, cex = 1.5)
   
   if (quartile_points){
     for (segment in 1:length(uniqueSegments)){
@@ -1216,6 +1274,15 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
       points(slopes_segments[[uniqueSegments[[segment]]]][[9]], slopes_segments[[segment]][[10]], col = "blue", pch = 19)
       points(slopes_segments[[uniqueSegments[[segment]]]][[5]], slopes_segments[[segment]][[6]], col = "black", pch = 19)
     }
+  }
+  
+  print(pairwise_comparison(rawTraces, x_coor = max_xl, y_coor = min_yl, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  
+  print(pairwise_comparison(rawTraces, x_coor = min_xm, y_coor = min_ym, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  
+  for (user_ray in 1:length(rays)){
+    print("user specified:")
+    print(pairwise_comparison(rawTraces, x_coor = rays[[user_ray]][[1]], y_coor = rays[[user_ray]][[2]], angle = rays[[user_ray]][[3]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
   }
   
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
@@ -1308,7 +1375,7 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
   return(data.frame(filteredTraces))
 }
 
-find_curvature <- function(xargs, yargs){
+find_curvature <- function(xargs, yargs, split_point = 0.5){
   
   x_args <- rev(xargs[!is.na(xargs)])
   y_args <- rev(yargs[!is.na(yargs)])
@@ -1349,10 +1416,12 @@ find_curvature <- function(xargs, yargs){
   
   
   x_min <- x_args[1]
+  y_min <- y_args[1]
   x_max <- x_args[length(x_args)]
+  y_max <- y_args[length(y_args)]
   #double check x_indexes
   #can improve this to return "percentages" along the line
-  return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center)/2], y_args[index_center + (length(x_args) - index_center)/2], x_min, x_max))
+  return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max, y_min, y_max))
   
 }
 
@@ -1363,8 +1432,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE,
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
-                       maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays = FALSE,
-                       quartile_points = FALSE, perpendicularRays = FALSE){
+                       maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57, col = c())), parallelRays = FALSE,
+                       quartile_points = FALSE, perpendicularRays = FALSE, h = 0){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1379,7 +1448,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
   
   matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  rx <- plotStyleTraces(matrixIntersection = matrixIntersection, polarTraces = polarTraces, 
+  rx <- plotStyleTraces(rawTraces = rawTraces, matrixIntersection = matrixIntersection, polarTraces = polarTraces, 
                         dataOfEachCurveNNj = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, 
                         rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display,
                         palette = palette, bands.lines = bands.lines, legend.position = legend.position, 
@@ -1388,7 +1457,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                         legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                         maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
-                          quartile_points, perpendicularRays = perpendicularRays)
+                          quartile_points, perpendicularRays = perpendicularRays, h = h)
   #return(rx)
   return(rawTraces)
 }
@@ -1538,7 +1607,7 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
 }
 
 pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
-                                scaling.factor = 800/600, x_coor = 0, y_coor = 0, angle = 1){
+                                scaling.factor = 800/600, x_coor = 0, y_coor = 0, angle = 1, mask = c(), paletteC = c(), pdf_filename = c()){
   
   polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
   
@@ -1562,18 +1631,28 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   differences2 <- data.frame()
   if (length(remove_categories) != 0){
     differences2 <- differences[-(remove_categories)]
+    if (length(mask) != 0){
+      mask <- mask[-(remove_categories)]
+    }
   }else{
     differences2 <- differences
   }
   
   values <- as.vector(unlist(differences2))
+  # values <- (values - min(values, na.rm = TRUE)) #/(max(values, na.rm = TRUE) - min(values, na.rm = TRUE)))
   number_col <- as.vector(sapply(differences2, function(x) length(x)))
   
   for (category in 1:(length(names(differences2)))){
-    categories <- append(categories, sapply(names(differences2)[[category]], function(x) rep(x, each = number_col[[category]])))
+    if (length(mask) != 0){
+      categories <- append(categories, sapply(mask[[category]], function(x) rep(x, each = number_col[[category]])))
+    }else{
+      categories <- append(categories, sapply(names(differences2)[[category]], function(x) rep(x, each = number_col[[category]])))
+    }
+    
   }
   
   intersections_grouped <- data.frame(values, categories)
+  #print(intersections_grouped)
   pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, na.rm = TRUE, p.adjust.method = "bonferroni")
   #null hypothesis -- all group means are equal
   distances <- intersections_grouped$values
@@ -1586,7 +1665,48 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #summary(anova_fit) model to see which vowels significant in predicting category -- not rlly wanted? 
   #anova_model <- lm(values ~ categories, data = intersections_grouped)
   #turkey_results <- TurkeyHSD(anova_results)
-  boxplot(distances ~ segments)
+  data2 <- data.frame(
+    Groups= segments,
+    Values= distances)
+  
+  #data2 <- data2[order(data2$Values), ]
+  # data2$ValuesN <- (data2$Values - min(data2$Values))/(max(data2$Values) - min(data2$Values))
+  # print("minimum")
+  
+  #standard ggplot not bvery good, significance levels overlap
+  #gbox <- ggplot(data2, aes(x=Groups, y=Values)) + geom_boxplot()
+  #  limits <- gbox + geom_signif(data=data2, comparisons = list(c("a","i"), c("i","u"), c("a", "u")), map_signif_level = TRUE)
+  # print(limits)
+  combos = t(combn(unique(segments),2))
+  
+  
+  #print(combos)
+  
+  # for (combo in 1:nrow(combos)){
+  #   combos_list <- append(combos_list, c(combos[combo, 1], combos[combo, 2]))
+  # }
+  
+  combos_list <- matrix(t(combos), 2)
+  paired_matrix <- matrix(combos_list, nrow = 2)
+  combos_list <- as.list(as.data.frame(paired_matrix))
+  #print(combos_list[1:5])
+  
+  p <- ggboxplot(data2, x = "Groups", y = "Values",
+                 color = "black") +
+    stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test",
+                       ref.group = "0.5")
+  
+  print(p)
+  #print(compare_means(Values ~ Groups,  data = data2, method = "t.test"))
+  
+  fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", palette = paletteC,
+                     add = "boxplot", add.params = list(fill = "white"))+
+    stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test", ref.group = "0.5")
+  print(fiddle)
+  
+  #list(c("a","i"), c("i","u"), c("y","ɯ"), c("ɯ","u"))
+  
+  #boxplot(distances ~ segments)
   #qqnorm(distances) #would be nice to group by segments
   #summary(anova_results) p-value for whether some of the groups have signifanct mean differences
   return(pairwise_results) #or anova(anova_fit)
