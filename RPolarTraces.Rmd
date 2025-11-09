@@ -5,8 +5,8 @@ date: "2023-11-01"
 ---
 
 ```{r}
-rm(list=ls())
-ls()
+# rm(list=ls())
+# ls()
 ```
 
 ```{r setup, include=FALSE}
@@ -25,6 +25,7 @@ library(eply)
 #library(textgRid)
 library(extrafont)
 library(Cairo)
+library(grid)
 
 library(tidyr)
 #font_import()
@@ -33,6 +34,9 @@ library(tidyr)
 
 library(car)
 #library(multcomp)
+library(ggplot2)
+library(ggsignif)
+library(ggpubr)
 ```
 
 ```{r}
@@ -1080,25 +1084,17 @@ rays[[1]][[3]]
 
 ```{r}
 #POST PROCESSING
-
-my_palette1 <- c(
-  "#FF0000", "#800080", "#0000FF",   # Red, Purple, Blue
-  "#FF3333", "#993399", "#3366FF",   # Light Red, Light Purple, Light Blue
-  "#FF6666", "#B366CC", "#6699FF",   # Medium Red, Medium Purple, Medium Blue
-  "#FF9999", "#CC99FF", "#99BBFF",   # Dark Red, Dark Purple, Dark Blue
-  "#FFCCCC", "#E6CCFF", "#CCE6FF"    # Lighter Red, Lighter Purple, Lighter Blue
-)
-
-plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
+plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
                             rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(),
                             bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", 
                             standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
                             plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
-                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57))){
+                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays =
+                              FALSE,
+                            quartile_points = FALSE, perpendicularRays = FALSE, h = 2){
   
   plotbounds <- identifyPlotBounds(polarTraces)
-  
   standardDeviation <- list()
   averagedRX <- list()
   averagedRY <- list()
@@ -1127,6 +1123,17 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
     standardDeviation[[segment]] <- unlist(standardDeviation[[segment]])
   }
   
+  #calculating slopes, making sure it matches up
+  slopes_segments = list()
+  for (segment in 1:length(uniqueSegments)){
+    segment_slope <- find_curvature(averagedRX[[uniqueSegments[[segment]]]], averagedRY[[uniqueSegments[[segment]]]])
+    slopes_segments[[uniqueSegments[[segment]]]] <- segment_slope
+  }
+  
+  #rename to account for masking
+  df <- do.call(rbind, slopes_segments)
+  averaged_everything <- colMeans(df)
+  print(averaged_everything)
   
   #we now have the standard deviation
   xSDHigh <- list()
@@ -1169,7 +1176,7 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   }
   
   if (length(pdf.filename)!=0){
-    cairo_pdf(filename = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05))
+    cairo_pdf(filename = pdf.filename, family = "DejaVu Serif", width = 22 * (plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 22 * (plotbounds[[4]] - plotbounds[[3]] -0.05), onefile = TRUE)
   }
   
   if (length(png.filename)!=0){
@@ -1200,7 +1207,6 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
   }else{
     paletteColors <- palette
   }
-  
   
   for (segment in 1:length(uniqueSegments)){
     #Shading
@@ -1242,14 +1248,6 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
       }
     }
     
-    for (ray in 1:length(rays)){
-       if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
-        points(rays[[ray]][[1]], rays[[ray]][[2]], col = "red", pch = 19)
-        segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = "red", lwd = 2, lty = 2)
-      }
-    }
-   
-    
     ltyNumerical = means.styles
     
     numberColumns = 1
@@ -1270,10 +1268,120 @@ plotStyleTraces <- function(matrixIntersection, polarTraces, dataOfEachCurveNNj,
     }
   }
   
+  perp_l = -1/averaged_everything[[1]]
+  perp_m = -1/averaged_everything[[2]]
+  
+  #take midpoint
+  #take max x and min y out of this for red point
+  max_xl = max(df[, 7]) + sd(df[, 7])
+  min_yl = min(df[, 8]) - sd(df[, 8])
+  min_xm = min(df[, 9]) - sd(df[, 9])
+  min_ym = min(df[, 10]) - sd(df[, 10])
+  
+  if (perpendicularRays){
+      points(max_xl, min_yl, col = "pink", pch = 19)
+      segments(max_xl, min_yl, averaged_everything[[11]], min_yl - perp_l*(max_xl - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
+      
+      points(min_xm, min_ym, col = "pink", pch = 19)
+      segments(min_xm, min_ym, averaged_everything[[12]], min_ym + perp_m*(averaged_everything[[12]] - min_xm), col = "pink", lwd = 2, lty = 2)
+  }
+  
+  for (ray in 1:length(rays)){
+    if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
+        points(rays[[ray]][[1]], rays[[ray]][[2]], col = "red", pch = 19)
+        segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = "red", lwd = 2, lty = 2)
+      }
+    }
+  #not averaged everything, depending on h = 0 min, h = 1 at least 1 point, h = 2, standard deviation so 2nd min from each segment
+  #change starting point
+  #c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max)
+  
+  #centered intersection point
+  x_int <- (averaged_everything[[4]] - averaged_everything[[3]]) / (averaged_everything[[1]] - averaged_everything[[2]])
+  y_int <- averaged_everything[[1]]*x_int + averaged_everything[[3]]
+  
+  if (h == 0){
+    start_xl = min(df[, 11])
+    y_xl = df[which.min(df[, 11]), 13]
+    #end_xl = max(df[, 5])
+    b2 <- y_xl - perp_l * start_xl
+
+    x <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
+    y <- averaged_everything[[1]] * x +  averaged_everything[[3]]
+    
+    center_l = y_xl + (end_xl - start_xl) * averaged_everything[[1]]
+    
+    start_xm = min(df[, 5])
+    end_xm = max(df[, 12])
+    y_xm = df[which.max(df[, 12]), 14]
+    
+    center_m = y_xm - (end_xm - start_xm) * averaged_everything[[2]]
+  }
+  
+  if (h == 1){
+    start_xl = max(df[, 11])
+    end_xl = averaged_everything[[5]] #min(df[, 5])
+    y_xl = df[which.max(df[, 11]), 13] #add in respective x coor
+    
+    center_l = y_xl + (end_xl - start_xl) * averaged_everything[[1]]
+    
+    start_xm = averaged_everything[[5]] #max(df[, 5])
+    end_xm = min(df[, 12])
+    y_xm = df[which.max(df[, 12]), 14]
+    
+    center_m = y_xm - (end_xm - start_xm) * averaged_everything[[2]]
+  }
+  
+  if (h == 2){
+    start_xl = averaged_everything[[11]]
+    end_xl = averaged_everything[[5]]
+    center_l = averaged_everything[[6]]
+    y_xl = center_l - averaged_everything[[1]] * (end_xl - start_xl)
+    
+    start_xm = averaged_everything[[5]]
+    end_xm = min(df[, 12])
+    center_m = averaged_everything[[6]]
+    y_xm = center_m + averaged_everything[[2]] * (end_xm - start_xm)
+  }
+
+  
+  if (parallelRays){
+    # points(start_xl, y_xl, col = "black", pch = 19)
+    # points(start_xm, y_xm, col = "black", pch = 19)
+    points(x_int, y_int, col = "black", pch = 19)
+    segments(start_xl, y_xl, end_xl, center_l, col = "black", lwd = 2, lty = 2)
+    segments(start_xm, center_m, end_xm, y_xm, col = "black", lwd = 2, lty = 2)
+  }
+  
+  # if (parallelRays){
+  #   points(averaged_everything[[5]], averaged_everything[[6]], col = "black", pch = 19)
+  #   segments(averaged_everything[[5]], averaged_everything[[6]], averaged_everything[[11]], averaged_everything[[6]]+
+  #              -1*averaged_everything[[1]]*(averaged_everything[[5]] - averaged_everything[[11]]), col = "black", lwd = 2, lty = 2)
+  #   segments(averaged_everything[[5]], averaged_everything[[6]], averaged_everything[[12]], averaged_everything[[6]] +
+  #              averaged_everything[[2]]*(averaged_everything[[12]] - averaged_everything[[5]]), col = "black", lwd = 2, lty = 2)
+  #   
+  #   #add in parameter
+  #   # points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
+  #   # points(averaged_everything[[9]], averaged_everything[[10]], col = "purple", pch = 19, cex = 1.5)
+  # }
+  
+  if (quartile_points){
+    for (segment in 1:length(uniqueSegments)){
+      points(slopes_segments[[uniqueSegments[[segment]]]][[7]], slopes_segments[[segment]][[8]], col = "red", pch = 19)
+      points(slopes_segments[[uniqueSegments[[segment]]]][[9]], slopes_segments[[segment]][[10]], col = "blue", pch = 19)
+      points(slopes_segments[[uniqueSegments[[segment]]]][[5]], slopes_segments[[segment]][[6]], col = "black", pch = 19)
+    }
+  }
+  
+  print(pairwise_comparison(rawTraces, x_coor = max_xl, y_coor = min_yl, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  
+  print(pairwise_comparison(rawTraces, x_coor = min_xm, y_coor = min_ym, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
     dev.off()
   }
   
+  return(slopes_segments)
 }
 ```
 
@@ -1383,7 +1491,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE,
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
-                       maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57))){
+                       maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57)), parallelRays = FALSE,
+                       quartile_points = FALSE, perpendicularRays = FALSE, h = 0){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1398,7 +1507,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
   
   matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
   
-  plotStyleTraces(matrixIntersection = matrixIntersection, polarTraces = polarTraces, 
+  rx <- plotStyleTraces(rawTraces = rawTraces, matrixIntersection = matrixIntersection, polarTraces = polarTraces, 
                   dataOfEachCurveNNj = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, 
                   rayIncrement = rayIncrement, mean.lines = mean.lines, points.display = points.display,
                   palette = palette, bands.lines = bands.lines, legend.position = legend.position, 
@@ -1406,100 +1515,78 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                   plot.ticks = plot.ticks, legend.size = legend.size, transparency = transparency, pdf.filename = pdf.filename,
                   bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                   legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
-                  maskCategories = maskCategories, rays = rays)
+                  maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
+                    quartile_points, perpendicularRays = perpendicularRays, h = h)
+  #return(rx)
   return(rawTraces)
 }
 ```
 
 ```{r}
-#directory_name <- "/Users/yayaorigami/Documents/plinguistics/IETestData"
-#directory_name <- "/Users/yayaorigami/Documents/plinguistics/ultrasound-data-RussianPalatals-202012/"
-#directory_name <- "/Users/yayaorigami/Documents/plinguistics/Dataset3"
-#directory_name <- "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012"
-categories <- c("o","y", "e", "i")
-categories <- c('u', 'ɯ', 'o', 'ɑ', 'i', 'y', 'e', 'ø')
-
-# myXY_data <- loadTraces("/Users/yayaorigami/Documents/plinguistics/IETestData", categoriesAll = c("o", "i"))
-#myXY_data <- loadAllTraces("/Users/yayaorigami/Documents/plinguistics/IETestData")
-
-# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012",categoriesAll  = list(c("ɫ","n"), c("lʲ", "nʲ"), c("")), layersAll = c('tongue','tongue','palate'), mergeCategories = TRUE) #"ɫ", "lʲ", "n", "nʲ"
-#myXY_data <- loadAllTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
-
-# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", tiernameAll = c("cons", ""), categoriesAll = list(c("n", "nʲ"), c("")), layersAll = c('tongue', 'palate'))
-
-#myXY_data <- loadAllTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
-
-# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", categoriesAll = list(c("n", "nʲ")))
-# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", categoriesAll = list(c(), c("")), tiernameAll = c("cons", ""), layersAll = c('tongue','palate'))
-
-
-#myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/IETestData")#, categoriesAll = c("i", "o"))
-# myXY_data <- loadTraces(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", categoriesAll = c("n", "nʲ"))
-#myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/IETestData")#, categoriesAll = c("u", "y"))
-#myXY_data2 <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/Dataset3")
-
-#myXY_data <- loadAllTracesMidPoint(directory_name = "/Users/yayaorigami/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
-
-# rawTraces <- loadTraces("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012", tiernameAll = c("cons", ""), categoriesAll = list(c("n"), ""), layersAll = c('tongue', 'palate'))
-
-
-#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
-
-# rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012")
-#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
-rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")
-
-# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), pdf.filename = "Palate-test4.pdf", categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V\_V.FF', 'zʲ.V\_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V\_V.FF', 'zˠ.V\_#.F'), c('zˠ.V\_#.M', 'zˠ.V\_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V\_V.BB', 'zʲ.V\_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V\_V.BB', 'zˠ.V\_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), maskCategories = c("SʲV\[-bk\]", "SˠV\[-bk\]", "SˠV\[mid\]", "SʲV\[+bk\]", "SˠV\[+bk\]", "Palate"))
-
-# polarTraces <- makeTracesPolar(rawTraces)                                                                           
-# plotTraces(rawTraces, polarTraces, pdf.filename = "Palate-test.pdf", palette = c(CB2, Black))
-
-#myXY_data <- loadTraces("~/Documents/plinguistics/Dataset3/", categoriesAll = list(c('u', 'ɯ', 'o', 'ɑ'), c('i', 'y', 'e', 'ø')), mergeCategories = TRUE)
-# #does not crash if "cons" tier specified to palate, which is good'
-#myXY_data <- loadAllTraces("~/Documents/plinguistics/Dataset3/")
-#myXY_data
-
-#myXY_data2
-#inherits(c(), "NULL")
+rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
+# rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
 ```
+```{r}
+# plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('y'), c('ə'), c('i'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE)
+
+#add 
+#put into pdf
+findX2 <- plotTraces(rawTraces, categoriesAll = list(c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'),  c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), mergeCategories = TRUE, maskCategories = c("ɫ", "nˠ", "Sˠ", "mˠ", "Kˠ"), legend.size = 1, parallelRays = TRUE, perpendicularRays = TRUE, h = 0)
+
+```
+Plus minus like 5% on each side. Remove 10 data points. 
 
 ```{r}
-rawTraces
+find_curvature <- function(xargs, yargs, split_point = 0.5){
+  
+  x_args <- rev(xargs[!is.na(xargs)])
+  y_args <- rev(yargs[!is.na(yargs)])
+
+  
+  chordlength <- ceiling(length(x_args)/2)
+  distances <- list()
+  
+  for (point in 1:(length(x_args) - chordlength)){
+    x_1 = x_args[point]
+    x_2 = x_args[point + chordlength]
+    y_1 = y_args[point]
+    y_2 = y_args[point + chordlength]
+    x_middle = (x_1 + x_2)/2
+    y_middle = (y_1 + y_2)/2
+    
+    curve_x = x_args[point + chordlength/2]
+    curve_y = y_args[point + chordlength/2]
+    
+    distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
+    distances <- append(distances, distance)
+  }
+  distances <- unlist(distances)
+  
+  split_index <- which(distances == max(distances))
+  x_split_less = x_args[1:(split_index + chordlength/2)]
+  x_split_more = x_args[(split_index + chordlength/2 + 1):length(x_args)]
+  
+  y_split_less = y_args[1:(split_index + chordlength/2)]
+  y_split_more = y_args[(split_index + chordlength/2 + 1):length(y_args)]
+  
+  lm_front <- coef(lm(y_split_less ~ x_split_less))
+  lm_back <- coef(lm(y_split_more ~ x_split_more))
+  # print(x_args)
+  center_x_split <- x_args[split_index + chordlength/2]
+  center_y_split <- y_args[split_index + chordlength/2]
+  index_center <- split_index + chordlength/2
+  
+  
+  x_min <- x_args[1]
+  y_min <- y_args[1]
+  x_max <- x_args[length(x_args)]
+  y_max <- y_args[length(y_args)]
+  #double check x_indexes
+  #can improve this to return "percentages" along the line
+  return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max, y_min, y_max))
+  
+}
 ```
-
-
-```{r}
-#filteredTraces <- filteringRawTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
-#filteredTraces <- filteringRawTraces(myXY_data, categoriesAll = list(c( \'o', 'ɑ')))
-#filteredTraces
-# filteredTraces
-#plotTraces(myXY_data, tiernameAll = c("cons", NA), categoriesAll = list(c("n"), NA), layersAll = c("tongue", "palate"))
-#plotTraces(myXY_data2, categoriesAll = list(c('u', 'ɯ', 'o', 'ɑ')), origin.algorithm = "BottomMean")
-#plotTraces(rawTraces, tiernameAll = c("cons2", NA), categoriesAll = list(c('sˠ.#_C.j'), NA), layersAll = c('tongue', 'palate'))
-#plotTraces(rawTraces, tiernameAll = c("cons2", NA), categoriesAll = list(c('sˠ.#_C.j'), NA), layersAll = c('tongue', 'palate'))
-
-# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", NA), categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'zʲ.V_V.FF'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'zˠ.V_#.F'), c('zˠ.V_#.M', 'zˠ.V_V.MM'), c('sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_#.B'), c('sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.B'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), mergeCategories = TRUE)
-#, maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "SˠV[mid]", "SʲV[+bk]", "SˠV[+bk]", "Palate"))
-
-# plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments", NA), categoriesAll = list(c('a'), c('i'), c('ʊ'), c('u'), c('ʏ'), c('y'), c('ə'), c('ɘ'), NA), layersAll = c('Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Palate'), maskCategories = c("a", "i", "ʊ", "u", "ʏ", "y", "ə", "ɘ", "Palate"), means.styles = c(1,1,2,2,3,3,4,4,1), rays = list(c(0, 0.5, .7), c(0, 0.6, .7)))
-
-plotTraces(rawTraces, categoriesAll = list(c("i", "y", "ɯ", "u", "e", "ø", "o", "a")), rays = list(c(0.05, 0.5, .5)))
-
-plotTraces(rawTraces, mergeCategories = c(TRUE), categoriesAll = list(c("y", "ø", "u", "o"), c("i", "e", "ɯ", "a")), maskCategories = c("rounded", "unrounded"), rays = list(c(0.05, 0.5, .5)))
-
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), categoriesAll = list(c("i", "y", "e", "ø"), c("ɯ", "u", "a", "o")), maskCategories = c("front vowels", "back vowels"), rays = list(c(0.05, 0.5, 1.6)))
-
-plotTraces(rawTraces, mergeCategories = c(TRUE), categoriesAll = list(c("i", "y", "ɯ", "u"), c("e", "ø", "o", "a")), maskCategories = c("high", "mid"), rays = list(c(0.05, 0.5, .5)))
-
-# plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments", NA), categoriesAll = list(c('a'), c('i'), c('ʊ'), c('u'), c('ʏ'), c('y'), c('ə'), c('ɘ'), NA), layersAll = c('Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Tongue', 'Palate'), maskCategories = c("a", "i", "ʊ", "u", "ʏ", "y", "ə", "ɘ", "Palate"), means.styles = c(1,1,2,2,3,3,4,4,1))
-
-# plotTraces(rawTraces, categoriesAll = list(c("Tongue"), c("Palate")))
-
-# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", NA), pdf.filename = "Palate-test2.pdf", categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'zʲ.V_V.FF'), c('sʲ.#_V.F', 'sʲ.V_#.F'), NA), layersAll = c('tongue', 'tongue', 'palate'), mergeCategories = c(TRUE), palette = c("blue", "red", "black"), maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "palate"), means.styles = c(2,3,4)) 
-
-# plotTraces(rawTraces, tiernameAll = c("cons2", "cons2", NA), mergeCategories = c(TRUE), pdf.filename = "Palate-test2.pdf", categoriesAll = list(c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF'), c('sʲ.#_V.F', 'sʲ.V_#.F'), NA), layersAll = c('tongue', 'tongue', 'palate'), palette = c("blue", "red", "black"), maskCategories = c("SʲV[-bk]", "SˠV[-bk]", "palate"), means.styles = c(2,3,4))
-```
-
 
 ```{r}
 polarTraces <- makeTracesPolar(myXY_data, scaling.factor = 592/412, origin.algorithm = "BottomMean")
@@ -1660,7 +1747,7 @@ differencePlot(filteredTraces)
 
 ```{r}
 pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
-                       scaling.factor = 800/600, x_coor = 0, y_coor = 0, angle = 1){
+                       scaling.factor = 800/600, x_coor = 0, y_coor = 0, angle = 1, mask = c(), paletteC = c(), pdf_filename = c()){
   
   polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
     
@@ -1684,18 +1771,28 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   differences2 <- data.frame()
   if (length(remove_categories) != 0){
     differences2 <- differences[-(remove_categories)]
+    if (length(mask) != 0){
+      mask <- mask[-(remove_categories)]
+    }
   }else{
     differences2 <- differences
   }
 
   values <- as.vector(unlist(differences2))
+  # values <- (values - min(values, na.rm = TRUE)) #/(max(values, na.rm = TRUE) - min(values, na.rm = TRUE)))
   number_col <- as.vector(sapply(differences2, function(x) length(x)))
   
   for (category in 1:(length(names(differences2)))){
-    categories <- append(categories, sapply(names(differences2)[[category]], function(x) rep(x, each = number_col[[category]])))
+    if (length(mask) != 0){
+      categories <- append(categories, sapply(mask[[category]], function(x) rep(x, each = number_col[[category]])))
+    }else{
+      categories <- append(categories, sapply(names(differences2)[[category]], function(x) rep(x, each = number_col[[category]])))
+    }
+    
   }
   
   intersections_grouped <- data.frame(values, categories)
+  #print(intersections_grouped)
   pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, na.rm = TRUE, p.adjust.method = "bonferroni")
   #null hypothesis -- all group means are equal
   distances <- intersections_grouped$values
@@ -1708,12 +1805,53 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #summary(anova_fit) model to see which vowels significant in predicting category -- not rlly wanted? 
   #anova_model <- lm(values ~ categories, data = intersections_grouped)
   #turkey_results <- TurkeyHSD(anova_results)
-  boxplot(distances ~ segments)
+  data2 <- data.frame(
+    Groups= segments,
+    Values= distances)
+  
+  #data2 <- data2[order(data2$Values), ]
+  # data2$ValuesN <- (data2$Values - min(data2$Values))/(max(data2$Values) - min(data2$Values))
+  # print("minimum")
+  
+  #standard ggplot not bvery good, significance levels overlap
+  #gbox <- ggplot(data2, aes(x=Groups, y=Values)) + geom_boxplot()
+  #  limits <- gbox + geom_signif(data=data2, comparisons = list(c("a","i"), c("i","u"), c("a", "u")), map_signif_level = TRUE)
+  # print(limits)
+  combos = t(combn(unique(segments),2))
+  
+  
+  #print(combos)
+  
+  # for (combo in 1:nrow(combos)){
+  #   combos_list <- append(combos_list, c(combos[combo, 1], combos[combo, 2]))
+  # }
+  
+  combos_list <- matrix(t(combos), 2)
+  paired_matrix <- matrix(combos_list, nrow = 2)
+  combos_list <- as.list(as.data.frame(paired_matrix))
+  #print(combos_list[1:5])
+  
+  p <- ggboxplot(data2, x = "Groups", y = "Values",
+          color = "black") +
+    stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test",
+                     ref.group = "0.5")
+  
+  print(p)
+  #print(compare_means(Values ~ Groups,  data = data2, method = "t.test"))
+  
+  fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", palette = paletteC,
+         add = "boxplot", add.params = list(fill = "white"))+
+  stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test", ref.group = "0.5")
+  print(fiddle)
+  
+  #list(c("a","i"), c("i","u"), c("y","ɯ"), c("ɯ","u"))
+ 
+  #boxplot(distances ~ segments)
   #qqnorm(distances) #would be nice to group by segments
   #summary(anova_results) p-value for whether some of the groups have signifanct mean differences
   return(pairwise_results) #or anova(anova_fit)
 }
-pairwise_comparison(filteredTraces, x_coor = 0.05, y_coor = 0.5, angle = 1.6)
+#c(-0.15, 0.4, .5))
 ```
 
 ```{r}
