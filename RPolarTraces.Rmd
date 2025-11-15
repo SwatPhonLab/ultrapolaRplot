@@ -1092,7 +1092,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
                             maskCategories = c(), rays = list(), parallelRays =
                               FALSE,
-                            quartile_points = FALSE, perpendicularRays = FALSE, h = 0, percentage = 0.5){
+                            quartile_points = FALSE, perpendicularRays = FALSE, h = 0, percentage = 0.5,
+                            percentage_front = c(), percentage_back = c()){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1309,20 +1310,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   perp_l = -1/averaged_everything[[1]]
   perp_m = -1/averaged_everything[[2]]
   
-  #take midpoint
-  #take max x and min y out of this for red point
-  max_xl = max(df[, 7]) + sd(df[, 7])
-  min_yl = min(df[, 8]) - sd(df[, 8])
-  min_xm = min(df[, 9]) - sd(df[, 9])
-  min_ym = min(df[, 10]) - sd(df[, 10])
-  
-  if (perpendicularRays){
-      points(max_xl, min_yl, col = "pink", pch = 19)
-      segments(max_xl, min_yl, averaged_everything[[11]], min_yl - perp_l*(max_xl - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
-      
-      points(min_xm, min_ym, col = "pink", pch = 19)
-      segments(min_xm, min_ym, averaged_everything[[12]], min_ym + perp_m*(averaged_everything[[12]] - min_xm), col = "pink", lwd = 2, lty = 2)
-  }
   
   if (length(rays) > 0) {
     print("lLENGTH")
@@ -1385,6 +1372,41 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     segments(x_int, y_int, x_adjusted_m, y_adjusted_m, col = "black", lwd = 2, lty = 2)
   }
   
+  if (length(percentage_front)!=0){
+    for (p in 1:length(percentage_front)){
+      on_x_l = x_int + (x_adjusted_l - x_int)*percentage_front[[p]]
+      on_y_l = y_int + (y_adjusted_l - y_int)*percentage_front[[p]]
+      y_target_l = on_y_l + perp_l*(x_int - on_x_l)
+      up_l = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_l, angle = (atan(perp_l) + pi))
+      x_1l = x_int + cos((atan(perp_l) + pi)) * up_l
+      y_1l = y_target_l + sin((atan(perp_l) + pi)) * up_l
+      if (perpendicularRays){
+        points(x_1l,  y_1l, col = "pink", pch = 19)
+        segments(x_1l,  y_1l, averaged_everything[[11]],  y_1l - perp_l*(x_1l - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
+      }
+    }
+  }
+  
+  if (length(percentage_back)!=0){
+    for (p in 1:length(percentage_back)){
+      on_x_m = x_int + (x_adjusted_m - x_int)*percentage_back[[p]]
+      on_y_m = y_int + (y_adjusted_m - y_int)*percentage_back[[p]]
+      y_target_m = on_y_m + perp_m*(x_int - on_x_m)
+      up_m = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_m, angle = atan(perp_m))
+      x_1m = x_int + cos(atan(perp_m)) * up_m
+      y_1m = y_target_m + sin(atan(perp_m)) * up_m
+      if (perpendicularRays){
+          points(x_1m, y_1m, col = "pink", pch = 19)
+          segments(x_1m, y_1m, averaged_everything[[12]], y_1m + perp_m*(averaged_everything[[12]] - x_1m), col = "pink", lwd = 2, lty = 2)
+      }
+    }
+  }
+
+  # points(on_x_l, on_y_l, col = "red", pch = 19)
+  # points(on_x_m, on_y_m, col = "red", pch = 19)
+  #points(x_int, y_target_l, col = "red", pch = 19)
+  #points(x_int, y_target_m, col = "red", pch = 19)
+  
   #   #add in parameter
   #   # points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
   #   # points(averaged_everything[[9]], averaged_everything[[10]], col = "purple", pch = 19, cex = 1.5)
@@ -1397,9 +1419,9 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     }
   }
   
-  print(pairwise_comparison(rawTraces, x_coor = max_xl, y_coor = min_yl, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-  
-  print(pairwise_comparison(rawTraces, x_coor = min_xm, y_coor = min_ym, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  # print(pairwise_comparison(rawTraces, x_coor = max_xl, y_coor = min_yl, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  # 
+  # print(pairwise_comparison(rawTraces, x_coor = min_xm, y_coor = min_ym, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
   
   if (length(rays) > 0){
     for (user_ray in 1:length(rays)){
@@ -1523,7 +1545,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), parallelRays = FALSE,
-                       quartile_points = FALSE, perpendicularRays = FALSE, h = 0, percentage = 0.5){
+                       quartile_points = FALSE, perpendicularRays = FALSE, h = 0, percentage = 0.5, percentage_front = c(),
+                       percentage_back = c()){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1547,22 +1570,23 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                   bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                   legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                   maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
-                    quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage)
+                    quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage, 
+                  percentage_front = percentage_front, percentage_back = percentage_back)
   #return(rx)
   return(rawTraces)
 }
 ```
 
 ```{r}
-#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
-rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
+rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
+#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
 ```
 ```{r}
-plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('ə'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE, h = 1) #c('i'),c('y')
+# plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('ə'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE, h = 4) #c('i'),c('y')
 
 #add 
 #put into pdf
-# findX2 <- plotTraces(rawTraces, categoriesAll = list(c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'),  c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), mergeCategories = TRUE, maskCategories = c("ɫ", "nˠ", "Sˠ", "mˠ", "Kˠ"), legend.size = 1, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, rays = (list(c(0.05, 0.57, 1.0, 0), c(0.0, 0.57, 1.0, 3))))
+findX2 <- plotTraces(rawTraces, categoriesAll = list(c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'),  c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), mergeCategories = TRUE, maskCategories = c("ɫ", "nˠ", "Sˠ", "mˠ", "Kˠ"), legend.size = 1, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.5, percentage_front = c(0.1, 0.3, 0.5, 0.6, 0.7, 0.9), percentage_back = c(0.3, 0.5, 0.7, 0.9), points.display = TRUE)
 
 ```
 Plus minus like 5% on each side. Remove 10 data points. 
@@ -1775,6 +1799,46 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
 }
 differencePlot(filteredTraces)
 ```
+
+```{r}
+ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
+                       scaling.factor = 800/600, x_coor, y_coor, angle, mask = c(), paletteC = c()){
+  
+  polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
+    
+  rayIncrement = 3.14159/180 * interval 
+  uniqueSegments <- get_unique_segments(filteredTraces)
+  dataOfEachCurveNNj <- read_in_data(filteredTraces)
+    
+  matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle)
+  differences <- sapply(matrixIntersection, function(x) t(x))
+  
+  values <- c()
+  categories <- c()
+  
+  remove_categories <- c()
+  for (category in 1:(length(names(differences)))){
+    if (length(differences[[category]]) == sum(is.na(differences[[category]]))){
+      remove_categories <- append(remove_categories, category)
+    }
+  }
+  
+  differences2 <- data.frame()
+  if (length(remove_categories) != 0){
+    differences2 <- differences[-(remove_categories)]
+    if (length(mask) != 0){
+      mask <- mask[-(remove_categories)]
+    }
+  }else{
+    differences2 <- differences
+  }
+
+  values <- as.vector(unlist(differences2))
+ 
+  return(min(values, na.rm = TRUE) - 0.015) 
+}
+```
+
 
 ```{r}
 pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
