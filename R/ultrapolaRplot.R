@@ -994,14 +994,53 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                             standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
                             plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
-                            maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57, col_r = c())), parallelRays =
+                            maskCategories = c(), rays = list(), parallelRays =
                               FALSE,
-                            quartile_points = FALSE, perpendicularRays = FALSE, h = 2){
+                            quartile_points = FALSE, perpendicularRays = FALSE, h = 0, percentage = 0.5,
+                            percentage_front = c(), percentage_back = c()){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
   averagedRX <- list()
   averagedRY <- list()
+  #assert each ray x_coor = 0, y_coor = 0, angle = 1.57, col_r = c()
+  
+  #h>=2
+  #min
+  num_rays = length(matrixIntersection[[1]][1, all()])
+  ray_l_final = num_rays
+  ray_m_final = 0
+  for (segment in 1:length(uniqueSegments)){
+    breakBool = TRUE
+    for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
+      if (breakBool && sum(!is.na(matrixIntersection[[segment]][, num_rays-ray])) >= h){ 
+        breakBool = FALSE
+        ray_l = (num_rays - ray)
+      }
+      if (sum(!is.na(matrixIntersection[[segment]][, ray])) >= h){ 
+        ray_m = ray
+        if (!breakBool){
+          break
+        }
+      }
+      
+    }
+    if (ray_l < ray_l_final){
+      ray_l_final = ray_l
+    }
+    if (ray_m > ray_m_final){
+      ray_m_final = ray_m
+    }
+  }
+  
+  
+  #first segment, doesn't matter
+  hx_coor_l = cos(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
+  hy_coor_l = sin(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
+  
+  hx_coor_m = cos(rayIncrement*ray_m_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_m_final]]
+  hy_coor_m = sin(rayIncrement*ray_m_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_m_final]]
+  
   
   for (segment in 1:length(uniqueSegments)){
     averagedRX[[uniqueSegments[[segment]]]] <- list()
@@ -1175,32 +1214,23 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   perp_l = -1/averaged_everything[[1]]
   perp_m = -1/averaged_everything[[2]]
   
-  #take midpoint
-  #take max x and min y out of this for red point
-  max_xl = max(df[, 7]) + sd(df[, 7])
-  min_yl = min(df[, 8]) - sd(df[, 8])
-  min_xm = min(df[, 9]) - sd(df[, 9])
-  min_ym = min(df[, 10]) - sd(df[, 10])
   
-  if (perpendicularRays){
-    points(max_xl, min_yl, col = "pink", pch = 19)
-    segments(max_xl, min_yl, averaged_everything[[11]], min_yl - perp_l*(max_xl - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
-    
-    points(min_xm, min_ym, col = "pink", pch = 19)
-    segments(min_xm, min_ym, averaged_everything[[12]], min_ym + perp_m*(averaged_everything[[12]] - min_xm), col = "pink", lwd = 2, lty = 2)
-  }
-  
-  for (ray in 1:length(rays)){
-    col_user = "pink"
-    if (rays[[ray]][[4]] != 0){
-      col_user = rays[[ray]][[4]]
-    }
-    rays[[ray]][[4]] = 0
-    if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
-      points(rays[[ray]][[1]], rays[[ray]][[2]], col = col_user, pch = 19)
-      segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = col_user, lwd = 2, lty = 2)
+  if (length(rays) > 0) {
+    print("lLENGTH")
+    print(length(rays))
+    for (ray in 1:length(rays)){
+      col_user = "pink"
+      if (rays[[ray]][[4]] != 0){
+        col_user = rays[[ray]][[4]]
+      }
+      rays[[ray]][[4]] = 0
+      if (rays[[ray]][[1]] != 0 || rays[[ray]][[2]]!= 0){
+        points(rays[[ray]][[1]], rays[[ray]][[2]], col = col_user, pch = 19)
+        segments(rays[[ray]][[1]], rays[[ray]][[2]], rays[[ray]][[1]] + 1*cos(rays[[ray]][[3]]), rays[[ray]][[2]] + 1*sin(rays[[ray]][[3]]), col = col_user, lwd = 2, lty = 2)
+      }
     }
   }
+  
   #not averaged everything, depending on h = 0 min, h = 1 at least 1 point, h = 2, standard deviation so 2nd min from each segment
   #change starting point
   #c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max)
@@ -1224,45 +1254,62 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
     y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
     
-  }
-  
-  #one annotation each
-  if (h == 1){
-    start_xl = max(df[, 11])
-    y_xl = df[which.max(df[, 11]), 13] #add in respective x coor
+  }else {
+    start_xl = hx_coor_l
+    y_xl = hy_coor_l #add in respective x coor
     b2 <- y_xl - perp_l * start_xl
     
     x_adjusted_l <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
+    print("adjustedl")
+    print(x_adjusted_l)
     y_adjusted_l <- averaged_everything[[1]] * x_adjusted_l +  averaged_everything[[3]]
     
-    end_xm = min(df[, 12])
-    y_xm = df[which.min(df[, 12]), 14]
+    end_xm = hx_coor_m
+    y_xm = hy_coor_m
     b2 <- y_xm - perp_m * end_xm
     x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
     y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
   }
   
-  #averaged
-  # if (h == 2){
-  #   start_xl = averaged_everything[[11]]
-  #   end_xl = averaged_everything[[5]]
-  #   center_l = averaged_everything[[6]]
-  #   y_xl = center_l - averaged_everything[[1]] * (end_xl - start_xl)
-  #   
-  #   start_xm = averaged_everything[[5]]
-  #   end_xm = min(df[, 12])
-  #   center_m = averaged_everything[[6]]
-  #   y_xm = center_m + averaged_everything[[2]] * (end_xm - start_xm)
-  # }
-  
-  
   if (parallelRays){
-    # points(start_xl, y_xl, col = "black", pch = 19)
-    # points(start_xm, y_xm, col = "black", pch = 19)
-    points(x_int, y_int, col = "black", pch = 19)
     segments(x_adjusted_l, y_adjusted_l, x_int, y_int, col = "black", lwd = 2, lty = 2)
     segments(x_int, y_int, x_adjusted_m, y_adjusted_m, col = "black", lwd = 2, lty = 2)
   }
+  
+  if (length(percentage_front)!=0){
+    for (p in 1:length(percentage_front)){
+      on_x_l = x_int + (x_adjusted_l - x_int)*percentage_front[[p]]
+      on_y_l = y_int + (y_adjusted_l - y_int)*percentage_front[[p]]
+      y_target_l = on_y_l + perp_l*(x_int - on_x_l)
+      up_l = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_l, angle = (atan(perp_l) + pi))
+      x_1l = x_int + cos((atan(perp_l) + pi)) * up_l
+      y_1l = y_target_l + sin((atan(perp_l) + pi)) * up_l
+      if (perpendicularRays){
+        points(x_1l,  y_1l, col = "pink", pch = 19)
+        segments(x_1l,  y_1l, averaged_everything[[11]],  y_1l - perp_l*(x_1l - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
+      }
+    }
+  }
+  
+  if (length(percentage_back)!=0){
+    for (p in 1:length(percentage_back)){
+      on_x_m = x_int + (x_adjusted_m - x_int)*percentage_back[[p]]
+      on_y_m = y_int + (y_adjusted_m - y_int)*percentage_back[[p]]
+      y_target_m = on_y_m + perp_m*(x_int - on_x_m)
+      up_m = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_m, angle = atan(perp_m))
+      x_1m = x_int + cos(atan(perp_m)) * up_m
+      y_1m = y_target_m + sin(atan(perp_m)) * up_m
+      if (perpendicularRays){
+        points(x_1m, y_1m, col = "pink", pch = 19)
+        segments(x_1m, y_1m, averaged_everything[[12]], y_1m + perp_m*(averaged_everything[[12]] - x_1m), col = "pink", lwd = 2, lty = 2)
+      }
+    }
+  }
+  
+  # points(on_x_l, on_y_l, col = "red", pch = 19)
+  # points(on_x_m, on_y_m, col = "red", pch = 19)
+  #points(x_int, y_target_l, col = "red", pch = 19)
+  #points(x_int, y_target_m, col = "red", pch = 19)
   
   #   #add in parameter
   #   # points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
@@ -1276,13 +1323,16 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     }
   }
   
-  print(pairwise_comparison(rawTraces, x_coor = max_xl, y_coor = min_yl, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  # print(pairwise_comparison(rawTraces, x_coor = max_xl, y_coor = min_yl, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  # 
+  # print(pairwise_comparison(rawTraces, x_coor = min_xm, y_coor = min_ym, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
   
-  print(pairwise_comparison(rawTraces, x_coor = min_xm, y_coor = min_ym, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-  
-  for (user_ray in 1:length(rays)){
-    print("user specified:")
-    print(pairwise_comparison(rawTraces, x_coor = rays[[user_ray]][[1]], y_coor = rays[[user_ray]][[2]], angle = rays[[user_ray]][[3]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  if (length(rays) > 0){
+    for (user_ray in 1:length(rays)){
+      print("user specified:")
+      print(user_ray)
+      print(pairwise_comparison(rawTraces, x_coor = rays[[user_ray]][[1]], y_coor = rays[[user_ray]][[2]], angle = rays[[user_ray]][[3]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+    }
   }
   
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
@@ -1375,6 +1425,44 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
   return(data.frame(filteredTraces))
 }
 
+ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
+                   scaling.factor = 800/600, x_coor, y_coor, angle, mask = c(), paletteC = c()){
+  
+  polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
+  
+  rayIncrement = 3.14159/180 * interval 
+  uniqueSegments <- get_unique_segments(filteredTraces)
+  dataOfEachCurveNNj <- read_in_data(filteredTraces)
+  
+  matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle)
+  differences <- sapply(matrixIntersection, function(x) t(x))
+  
+  values <- c()
+  categories <- c()
+  
+  remove_categories <- c()
+  for (category in 1:(length(names(differences)))){
+    if (length(differences[[category]]) == sum(is.na(differences[[category]]))){
+      remove_categories <- append(remove_categories, category)
+    }
+  }
+  
+  differences2 <- data.frame()
+  if (length(remove_categories) != 0){
+    differences2 <- differences[-(remove_categories)]
+    if (length(mask) != 0){
+      mask <- mask[-(remove_categories)]
+    }
+  }else{
+    differences2 <- differences
+  }
+  
+  values <- as.vector(unlist(differences2))
+  
+  return(min(values, na.rm = TRUE) - 0.015) 
+}
+
+
 find_curvature <- function(xargs, yargs, split_point = 0.5){
   
   x_args <- rev(xargs[!is.na(xargs)])
@@ -1432,8 +1520,9 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        means.styles = c(), standard.deviation.styles = "l", plot.ticks = FALSE, plot.labels = FALSE,
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
-                       maskCategories = c(), rays = list(c(x_coor = 0, y_coor = 0, angle = 1.57, col = c())), parallelRays = FALSE,
-                       quartile_points = FALSE, perpendicularRays = FALSE, h = 0){
+                       maskCategories = c(), rays = list(), parallelRays = FALSE,
+                       quartile_points = FALSE, perpendicularRays = FALSE, h = 0, percentage = 0.5, percentage_front = c(),
+                       percentage_back = c()){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1457,7 +1546,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                         legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                         maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
-                          quartile_points, perpendicularRays = perpendicularRays, h = h)
+                          quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage, 
+                        percentage_front = percentage_front, percentage_back = percentage_back)
   #return(rx)
   return(rawTraces)
 }

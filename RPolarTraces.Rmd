@@ -1425,7 +1425,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   if (length(rays) > 0){
     for (user_ray in 1:length(rays)){
-      print("user specified:")
+      print("user specified")
+      print(user_ray)
       print(pairwise_comparison(rawTraces, x_coor = rays[[user_ray]][[1]], y_coor = rays[[user_ray]][[2]], angle = rays[[user_ray]][[3]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
@@ -1582,7 +1583,7 @@ rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalat
 #rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
 ```
 ```{r}
-# plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('ə'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE, h = 4) #c('i'),c('y')
+# plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('ə'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE, h = 4, percentage_front = c(0.1, 0.3, 0.5, 0.6, 0.7, 0.9), percentage_back = c(0.3, 0.5, 0.7, 0.9)) #c('i'),c('y')
 
 #add 
 #put into pdf
