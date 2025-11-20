@@ -1284,11 +1284,9 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       up_l = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_l, angle = (atan(perp_l) + pi))
       x_1l = x_int + cos((atan(perp_l) + pi)) * up_l
       y_1l = y_target_l + sin((atan(perp_l) + pi)) * up_l
-      if (perpendicularRays){
-        points(x_1l,  y_1l, col = "pink", pch = 19)
-        segments(x_1l,  y_1l, averaged_everything[[11]],  y_1l - perp_l*(x_1l - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
-        print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      }
+      points(x_1l,  y_1l, col = "pink", pch = 19)
+      segments(x_1l,  y_1l, averaged_everything[[11]],  y_1l - perp_l*(x_1l - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
+      # print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
@@ -1300,11 +1298,10 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       up_m = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_m, angle = atan(perp_m))
       x_1m = x_int + cos(atan(perp_m)) * up_m
       y_1m = y_target_m + sin(atan(perp_m)) * up_m
-      if (perpendicularRays){
-        points(x_1m, y_1m, col = "pink", pch = 19)
-        segments(x_1m, y_1m, averaged_everything[[12]], y_1m + perp_m*(averaged_everything[[12]] - x_1m), col = "pink", lwd = 2, lty = 2)
-        print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      }
+      points(x_1m, y_1m, col = "pink", pch = 19)
+      segments(x_1m, y_1m, averaged_everything[[12]], y_1m + perp_m*(averaged_everything[[12]] - x_1m), col = "pink", lwd = 2, lty = 2)
+      # print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      
     }
   }
   
@@ -1328,14 +1325,32 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   # print(pairwise_comparison(rawTraces, x_coor = max_xl, y_coor = min_yl, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
   # 
   # print(pairwise_comparison(rawTraces, x_coor = min_xm, y_coor = min_ym, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+  #printing info to console after dev.off()
   
   if (length(rays) > 0){
     for (user_ray in 1:length(rays)){
-      print("user specified:")
+      print("user specified")
       print(user_ray)
       print(pairwise_comparison(rawTraces, x_coor = rays[[user_ray]][[1]], y_coor = rays[[user_ray]][[2]], angle = rays[[user_ray]][[3]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
+  
+  if (length(percentage_front)!=0){
+    for (p in 1:length(percentage_front)){
+      print("PAIRWISE COMPARISON NEGATIVE")
+      print(percentage_front[[p]])
+      print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+    }
+  }
+  
+  if (length(percentage_back)!=0){
+    for (p in 1:length(percentage_back)){
+      print("PAIRWISE COMPARISON POSITIVE")
+      print(percentage_back[[p]])
+      print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+    }
+  }
+  
   
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
     dev.off()
