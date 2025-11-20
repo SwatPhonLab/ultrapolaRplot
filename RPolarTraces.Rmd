@@ -1383,6 +1383,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       if (perpendicularRays){
         points(x_1l,  y_1l, col = "pink", pch = 19)
         segments(x_1l,  y_1l, averaged_everything[[11]],  y_1l - perp_l*(x_1l - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
+        print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = (atan(perp_l) + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
       }
     }
   }
@@ -1398,6 +1399,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       if (perpendicularRays){
           points(x_1m, y_1m, col = "pink", pch = 19)
           segments(x_1m, y_1m, averaged_everything[[12]], y_1m + perp_m*(averaged_everything[[12]] - x_1m), col = "pink", lwd = 2, lty = 2)
+          print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
       }
     }
   }
@@ -1588,7 +1590,11 @@ rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalat
 #add 
 #put into pdf
 findX2 <- plotTraces(rawTraces, categoriesAll = list(c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'),  c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), mergeCategories = TRUE, maskCategories = c("ɫ", "nˠ", "Sˠ", "mˠ", "Kˠ"), legend.size = 1, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.5, percentage_front = c(0.1, 0.3, 0.5, 0.6, 0.7, 0.9), percentage_back = c(0.3, 0.5, 0.7, 0.9), points.display = TRUE)
-
+#split at elbow
+#parallel = bestFitRays.split
+#bestFitRays.start_points_density
+#bestFitRays.intersections_negative
+#bestFitRays.intersections_positive
 ```
 Plus minus like 5% on each side. Remove 10 data points. 
 
