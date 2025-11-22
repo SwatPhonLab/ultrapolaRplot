@@ -1276,28 +1276,38 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     segments(x_int, y_int, x_adjusted_m, y_adjusted_m, col = "black", lwd = 2, lty = 2)
   }
   
+  front_x_l = list()
+  front_y_l = list()
+  x_max = max(df[,12])
   if (length(percentage_front)!=0){
     for (p in 1:length(percentage_front)){
       on_x_l = x_int + (x_adjusted_l - x_int)*percentage_front[[p]]
       on_y_l = y_int + (y_adjusted_l - y_int)*percentage_front[[p]]
-      y_target_l = on_y_l + perp_l*(x_int - on_x_l)
-      up_l = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_l, angle = (atan(perp_l) + pi))
-      x_1l = x_int + cos((atan(perp_l) + pi)) * up_l
+      y_target_l = on_y_l + perp_l*(x_max - on_x_l)
+      up_l = ray_up(rawTraces, x_coor = x_max, y_coor = y_target_l, angle = (atan(perp_l) + pi))
+      x_1l = x_max + cos((atan(perp_l) + pi)) * up_l
       y_1l = y_target_l + sin((atan(perp_l) + pi)) * up_l
+      front_x_l = append(front_x_l, x_1l)
+      front_y_l = append(front_y_l, y_1l)
       points(x_1l,  y_1l, col = "pink", pch = 19)
       segments(x_1l,  y_1l, averaged_everything[[11]],  y_1l - perp_l*(x_1l - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
       # print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
+  back_x_m = list()
+  back_y_m = list()
+  x_min = min(df[,11])
   if (length(percentage_back)!=0){
     for (p in 1:length(percentage_back)){
       on_x_m = x_int + (x_adjusted_m - x_int)*percentage_back[[p]]
       on_y_m = y_int + (y_adjusted_m - y_int)*percentage_back[[p]]
-      y_target_m = on_y_m + perp_m*(x_int - on_x_m)
-      up_m = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_m, angle = atan(perp_m))
-      x_1m = x_int + cos(atan(perp_m)) * up_m
+      y_target_m = on_y_m + perp_m*(x_min - on_x_m)
+      up_m = ray_up(rawTraces, x_coor = x_min, y_coor = y_target_m, angle = atan(perp_m))
+      x_1m = x_min + cos(atan(perp_m)) * up_m
       y_1m = y_target_m + sin(atan(perp_m)) * up_m
+      back_x_m = append(back_x_m, x_1m)
+      back_y_m = append(back_y_m, y_1m)
       points(x_1m, y_1m, col = "pink", pch = 19)
       segments(x_1m, y_1m, averaged_everything[[12]], y_1m + perp_m*(averaged_everything[[12]] - x_1m), col = "pink", lwd = 2, lty = 2)
       # print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
@@ -1339,7 +1349,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (p in 1:length(percentage_front)){
       print("PAIRWISE COMPARISON NEGATIVE")
       print(percentage_front[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
@@ -1347,7 +1357,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (p in 1:length(percentage_back)){
       print("PAIRWISE COMPARISON POSITIVE")
       print(percentage_back[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
@@ -1730,7 +1740,7 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   
   remove_categories <- c()
   for (category in 1:(length(names(differences)))){
-    if (length(differences[[category]]) == sum(is.na(differences[[category]]))){
+    if (length(differences[[category]]) <= sum(is.na(differences[[category]])) + 1){
       remove_categories <- append(remove_categories, category)
     }
   }

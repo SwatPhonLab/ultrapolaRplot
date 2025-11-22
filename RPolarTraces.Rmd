@@ -1372,28 +1372,38 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     segments(x_int, y_int, x_adjusted_m, y_adjusted_m, col = "black", lwd = 2, lty = 2)
   }
   
+  front_x_l = list()
+  front_y_l = list()
+  x_max = max(df[,12])
   if (length(percentage_front)!=0){
     for (p in 1:length(percentage_front)){
       on_x_l = x_int + (x_adjusted_l - x_int)*percentage_front[[p]]
       on_y_l = y_int + (y_adjusted_l - y_int)*percentage_front[[p]]
-      y_target_l = on_y_l + perp_l*(x_int - on_x_l)
-      up_l = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_l, angle = (atan(perp_l) + pi))
-      x_1l = x_int + cos((atan(perp_l) + pi)) * up_l
+      y_target_l = on_y_l + perp_l*(x_max - on_x_l)
+      up_l = ray_up(rawTraces, x_coor = x_max, y_coor = y_target_l, angle = (atan(perp_l) + pi))
+      x_1l = x_max + cos((atan(perp_l) + pi)) * up_l
       y_1l = y_target_l + sin((atan(perp_l) + pi)) * up_l
+      front_x_l = append(front_x_l, x_1l)
+      front_y_l = append(front_y_l, y_1l)
       points(x_1l,  y_1l, col = "pink", pch = 19)
       segments(x_1l,  y_1l, averaged_everything[[11]],  y_1l - perp_l*(x_1l - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
       # print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
+  back_x_m = list()
+  back_y_m = list()
+  x_min = min(df[,11])
   if (length(percentage_back)!=0){
     for (p in 1:length(percentage_back)){
       on_x_m = x_int + (x_adjusted_m - x_int)*percentage_back[[p]]
       on_y_m = y_int + (y_adjusted_m - y_int)*percentage_back[[p]]
-      y_target_m = on_y_m + perp_m*(x_int - on_x_m)
-      up_m = ray_up(rawTraces, x_coor = x_int, y_coor = y_target_m, angle = atan(perp_m))
-      x_1m = x_int + cos(atan(perp_m)) * up_m
+      y_target_m = on_y_m + perp_m*(x_min - on_x_m)
+      up_m = ray_up(rawTraces, x_coor = x_min, y_coor = y_target_m, angle = atan(perp_m))
+      x_1m = x_min + cos(atan(perp_m)) * up_m
       y_1m = y_target_m + sin(atan(perp_m)) * up_m
+      back_x_m = append(back_x_m, x_1m)
+      back_y_m = append(back_y_m, y_1m)
       points(x_1m, y_1m, col = "pink", pch = 19)
       segments(x_1m, y_1m, averaged_everything[[12]], y_1m + perp_m*(averaged_everything[[12]] - x_1m), col = "pink", lwd = 2, lty = 2)
       # print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
@@ -1435,7 +1445,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (p in 1:length(percentage_front)){
       print("PAIRWISE COMPARISON NEGATIVE")
       print(percentage_front[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
    
@@ -1443,7 +1453,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (p in 1:length(percentage_back)){
       print("PAIRWISE COMPARISON POSITIVE")
       print(percentage_back[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
@@ -1597,39 +1607,39 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
 
 ```{r}
 #rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
-#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
-rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")
+rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
+#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")
 ```
 ```{r}
-# plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('ə'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE, h = 4, percentage_front = c(0.1, 0.3, 0.5, 0.6, 0.7, 0.9), percentage_back = c(0.3, 0.5, 0.7, 0.9)) #c('i'),c('y')
+plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('ə'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE, h = 2, percentage_front = c(0.1, 0.3, 0.5, 0.6, 0.7, 0.9), percentage_back = c(0.3, 0.5, 0.7, 0.9), points.display = TRUE) #c('i'),c('y')
 
 #add 
 #put into pdf
-# findX2 <- plotTraces(rawTraces, categoriesAll = list(c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'),  c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), mergeCategories = TRUE, maskCategories = c("ɫ", "nˠ", "Sˠ", "mˠ", "Kˠ"), legend.size = 1, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.5, percentage_front = c(0.1, 0.3, 0.5, 0.6, 0.7, 0.9), percentage_back = c(0.3, 0.5, 0.7, 0.9), points.display = TRUE)
+# findX2 <- plotTraces(rawTraces, categoriesAll = list(c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'),  c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), mergeCategories = TRUE, maskCategories = c("ɫ", "nˠ", "Sˠ", "mˠ", "Kˠ"), legend.size = 1, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.5, percentage_front = c(0.9), percentage_back = c(0.3, 0.9), points.display = TRUE)
 
 # DarkRed = '#B30000'
 # DarkBlue = '#0000FF'
 # findX2 <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2"), categoriesAll = list(c('lʲ.#_V.F', 'lʲ.V_#.F', 'lʲ.V_V.FF', 'lʲ.#_V.B', 'lʲ.V_#.B', 'lʲ.V_V.BB'), c('nʲ.#_V.B', 'nʲ.V_#.B', 'nʲ.V_V.BB', 'nʲ.#_V.F', 'nʲ.V_#.F', 'nʲ.V_V.FF'),  c('mʲ.#_V.F', 'mʲ.V_#.F', 'mʲ.V_V.FF', 'mʲ.#_V.B', 'mʲ.V_#.B', 'mʲ.V_V.BB'), c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_V.FF', 'zʲ.V_#.B'), c('kʲ.#_V.F', 'gʲ.#_V.F', 'gʲ.V_V.FF'), c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'palate'), maskCategories = c("lʲ", "nʲ", "mʲ", "Sʲ", "Kʲ", "ɫ", "nˠ", "mˠ", "Sˠ", "Kˠ"), palette = c(DarkBlue, DarkBlue, DarkBlue, DarkBlue, DarkBlue, DarkRed, DarkRed, DarkRed, DarkRed, DarkRed), means.styles = c(1,2,3,4,5,1,2,3,4,5), parallelRays = TRUE, perpendicularRays = TRUE, h = 0, percentage_front = c(0.2, 0.8), percentage_back = c(0.3), legend.size=1.5)
 
-DarkRed = '#B30000'
-LightRed = '#FF69B5' 
-DarkBlue = '#0000FF'
-LightBlue = '#00D9FF'
-DarkGreen = '#063b00'
-LightGreen = '#0eff00'
-DarkPurple = '#9a00d6'
-Orange = '#d55e00'
-CB1 = '#648FFF'
-CB2 = '#785EF0'
-CB3 = '#DC267F'
-CB4 = '#FE6100'
-CB5 = '#FFB000'
-Black = '#000000'
-Grey = '#939799'
-Grey1 = '#555555'
-LightPurple = '#CBC3E3'
-
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow", NA), categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('u'), c('ɯ', 'ɯː'), c('ɛ'), c('œ'), c('a'), c('ɔ'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), maskCategories = c("i/iː", "y/yː", "u", "ɯ/ɯː", "ɛ", "œ", "a", "ɔ", "Palate"), palette = c(LightBlue, LightBlue, LightRed, LightRed, DarkBlue, DarkBlue, DarkRed, DarkRed, Black), means.styles = c(1,2,1,2,1,2,1,2,1), legend.size=0.8, legend.position="topleft", legend.linewidth=0.5, percentage_front = c(0.5), percentage_back = c(0.35, 0.5), parallelRays = TRUE, h = 0, pdf.filename = "hiDolgan.pdf")
+# DarkRed = '#B30000'
+# LightRed = '#FF69B5' 
+# DarkBlue = '#0000FF'
+# LightBlue = '#00D9FF'
+# DarkGreen = '#063b00'
+# LightGreen = '#0eff00'
+# DarkPurple = '#9a00d6'
+# Orange = '#d55e00'
+# CB1 = '#648FFF'
+# CB2 = '#785EF0'
+# CB3 = '#DC267F'
+# CB4 = '#FE6100'
+# CB5 = '#FFB000'
+# Black = '#000000'
+# Grey = '#939799'
+# Grey1 = '#555555'
+# LightPurple = '#CBC3E3'
+# 
+# filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow", NA), categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('u'), c('ɯ', 'ɯː'), c('ɛ'), c('œ'), c('a'), c('ɔ'), NA), layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'), maskCategories = c("i/iː", "y/yː", "u", "ɯ/ɯː", "ɛ", "œ", "a", "ɔ", "Palate"), palette = c(LightBlue, LightBlue, LightRed, LightRed, DarkBlue, DarkBlue, DarkRed, DarkRed, Black), means.styles = c(1,2,1,2,1,2,1,2,1), legend.size=0.8, legend.position="topleft", legend.linewidth=0.5, percentage_front = c(0.5), percentage_back = c(0.35, 0.5), parallelRays = TRUE, h = 0, pdf.filename = "hiDolgan.pdf")
 
 
 
@@ -1908,7 +1918,7 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   
   remove_categories <- c()
   for (category in 1:(length(names(differences)))){
-    if (length(differences[[category]]) == sum(is.na(differences[[category]]))){
+    if (length(differences[[category]]) <= sum(is.na(differences[[category]])) + 1){
       remove_categories <- append(remove_categories, category)
     }
   }
