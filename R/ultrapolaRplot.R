@@ -996,8 +996,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
                             maskCategories = c(), rays = list(), parallelRays =
                               FALSE,
-                            quartile_points = FALSE, perpendicularRays = FALSE, h = 0, percentage = 0.5,
-                            percentage_front = c(), percentage_back = c()){
+                            quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5,
+                            percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c()){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1012,13 +1012,17 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   ray_m_final = 0
   for (segment in 1:length(uniqueSegments)){
     breakBool = TRUE
+    inner = FALSE
     for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
       if (breakBool && sum(!is.na(matrixIntersection[[segment]][, num_rays-ray])) >= h){ 
         breakBool = FALSE
         ray_l = (num_rays - ray)
       }
       if (sum(!is.na(matrixIntersection[[segment]][, ray])) >= h){ 
-        ray_m = ray
+        if (!inner){
+          ray_m = ray
+        }
+        inner = TRUE
         if (!breakBool){
           break
         }
@@ -1279,6 +1283,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   front_x_l = list()
   front_y_l = list()
   x_max = max(df[,12])
+  
+  neg_adjusted_angle = c()
   if (length(percentage_front)!=0){
     for (p in 1:length(percentage_front)){
       on_x_l = x_int + (x_adjusted_l - x_int)*percentage_front[[p]]
@@ -1290,7 +1296,30 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       front_x_l = append(front_x_l, x_1l)
       front_y_l = append(front_y_l, y_1l)
       points(x_1l,  y_1l, col = "pink", pch = 19)
-      segments(x_1l,  y_1l, averaged_everything[[11]],  y_1l - perp_l*(x_1l - averaged_everything[[11]]), col = "pink", lwd = 2, lty = 2)
+      
+      adjusted_angle = 0
+      if (length(angle_neg)!=0){
+        adjusted_angle = (angle_neg[[p]])*pi/180
+      }
+      adjusted_angle = -adjusted_angle + atan(perp_l) + pi 
+      neg_adjusted_angle = append(neg_adjusted_angle, adjusted_angle)
+      print("ADJUSTED ANGLEEE")
+      print(adjusted_angle)
+      print(tan(adjusted_angle))
+      print(y_1l)
+      print(y_1l + (tan(adjusted_angle))*(x_1l - averaged_everything[[11]]))
+      end_coordinate = averaged_everything[[11]]
+      sign_switch = FALSE
+      if (adjusted_angle > pi){
+        adjusted_angle = (adjusted_angle - pi)
+        sign_switch = TRUE
+      }
+      if (tan(adjusted_angle) > 0){
+        if (!sign_switch){
+          end_coordinate = averaged_everything[[12]]
+        }
+      }
+      segments(x_1l,  y_1l, end_coordinate,  y_1l - ((tan(adjusted_angle))*(x_1l - end_coordinate)), col = "pink", lwd = 2, lty = 2)
       # print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
@@ -1298,6 +1327,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   back_x_m = list()
   back_y_m = list()
   x_min = min(df[,11])
+  
+  pos_adjusted_angle = c()
   if (length(percentage_back)!=0){
     for (p in 1:length(percentage_back)){
       on_x_m = x_int + (x_adjusted_m - x_int)*percentage_back[[p]]
@@ -1309,7 +1340,29 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       back_x_m = append(back_x_m, x_1m)
       back_y_m = append(back_y_m, y_1m)
       points(x_1m, y_1m, col = "pink", pch = 19)
-      segments(x_1m, y_1m, averaged_everything[[12]], y_1m + perp_m*(averaged_everything[[12]] - x_1m), col = "pink", lwd = 2, lty = 2)
+      
+      adjusted_angle = 0
+      if (length(angle_pos)!=0){
+        adjusted_angle = (angle_pos[[p]])*pi/180
+      }
+      adjusted_angle = -adjusted_angle + atan(perp_m) 
+      pos_adjusted_angle = append(pos_adjusted_angle, adjusted_angle)
+      print("POS")
+      print(adjusted_angle)
+      print(tan(adjusted_angle))
+      end_coordinate = averaged_everything[[12]]
+      sign_switch = FALSE
+      if (adjusted_angle < 0){
+        adjusted_angle = (adjusted_angle + pi)
+        sign_switch = TRUE
+      }
+      if (tan(adjusted_angle) < 0){
+        if (!sign_switch){
+          end_coordinate = averaged_everything[[11]]
+        }
+      }
+      
+      segments(x_1m, y_1m, end_coordinate, y_1m + (tan(adjusted_angle))*(end_coordinate - x_1m), col = "pink", lwd = 2, lty = 2)
       # print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
       
     }
@@ -1349,7 +1402,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (p in 1:length(percentage_front)){
       print("PAIRWISE COMPARISON NEGATIVE")
       print(percentage_front[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
@@ -1357,7 +1410,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (p in 1:length(percentage_back)){
       print("PAIRWISE COMPARISON POSITIVE")
       print(percentage_back[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
@@ -1548,8 +1601,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), parallelRays = FALSE,
-                       quartile_points = FALSE, perpendicularRays = FALSE, h = 0, percentage = 0.5, percentage_front = c(),
-                       percentage_back = c()){
+                       quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5, percentage_front = c(),
+                       percentage_back = c(), angle_neg = c(), angle_pos = c()){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1574,7 +1627,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                         maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
                           quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage, 
-                        percentage_front = percentage_front, percentage_back = percentage_back)
+                        percentage_front = percentage_front, percentage_back = percentage_back, angle_neg = angle_neg, angle_pos = angle_pos)
   #return(rx)
   return(rawTraces)
 }
@@ -1750,6 +1803,9 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
     differences2 <- differences[-(remove_categories)]
     if (length(mask) != 0){
       mask <- mask[-(remove_categories)]
+      if (length(paletteC) > 0){
+        paletteC <- paletteC[-(remove_categories)]
+      }
     }
   }else{
     differences2 <- differences
@@ -1769,8 +1825,11 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   }
   
   intersections_grouped <- data.frame(values, categories)
+  intersections_grouped = na.omit(intersections_grouped)
   #print(intersections_grouped)
-  pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, na.rm = TRUE, p.adjust.method = "bonferroni")
+  pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
+  
+  
   #null hypothesis -- all group means are equal
   distances <- intersections_grouped$values
   segments <- intersections_grouped$categories
@@ -1808,19 +1867,71 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   combos_list <- as.list(as.data.frame(paired_matrix))
   #print(combos_list[1:5])
   
-  p <- ggboxplot(data2, x = "Groups", y = "Values",
-                 color = "black") +
-    stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test",
-                       ref.group = "0.5")
+  # stat_compare_means(comparisons = combos_list, label = "p.signif", na.rm = TRUE, method = "t.test", p.adjust.method = "bonferroni",
+  #                   var.equal = FALSE, ref.group = 0.5)
+  # stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test",
+  #                      ref.group = "0.5")
   
-  print(p)
+  
+  comparisons_plot = compare_means(Values ~ Groups, data = data2, 
+                                   method = "t.test",
+                                   paired = FALSE,
+                                   var.equal = FALSE,
+                                   pool.sd = FALSE, 
+                                   p.adjust.method = "bonferroni")
+  
+  print(comparisons_plot)
+  #comparisons_plot <- comparisons_plot %>% mutate(p.adj.signif = signif_stars(p.adj))
+  #comparisons_plot <- comparisons_plot %>% add_xy_position(x = "Groups")
+  comparisons_plot <- comparisons_plot %>% add_significance(p.col = "p.adj", output.col = "p.adj.signif")
+  comparisons_plot <- comparisons_plot %>% add_y_position(data = data2, formula = Values ~ Groups)
+  pAdj <- ggboxplot(data2, x = "Groups", y = "Values", color = "black") +
+    stat_pvalue_manual(
+      comparisons_plot,
+      label = "p.adj.signif"
+    )
+  print(pAdj)
+  
+  
+  # p <- ggboxplot(data2, x = "Groups", y = "Values", color = "black") +
+  #   stat_compare_means(
+  #     comparisons = combos_list,
+  #     method = "t.test",
+  #     paired = FALSE,
+  #     var.equal = FALSE,
+  #     aes(label=..p.adj..),
+  #     pool.sd = FALSE,
+  #     p.adjust.method = "bonferroni"
+  #   )
+  # 
+  # print(p)
   #print(compare_means(Values ~ Groups,  data = data2, method = "t.test"))
   
-  fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", palette = paletteC,
+  # fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
+  #        add = "boxplot", add.params = list(fill = "white"))+
+  #   guides(fill = guide_legend(override.aes = list(shape = 22, size = 6, color = NA)),
+  #   color = "none"        # hide color legend (redundant)
+  # )+
+  # stat_compare_means(
+  #     comparisons = combos_list,
+  #     method = "t.test",
+  #     paired = FALSE,
+  #     var.equal = FALSE,
+  #     aes(label=..p.adj..),
+  #     pool.sd = FALSE, 
+  #     p.adjust.method = "bonferroni"
+  #   ) 
+  fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
                      add = "boxplot", add.params = list(fill = "white"))+
-    stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test", ref.group = "0.5")
-  print(fiddle)
+    guides(fill = guide_legend(override.aes = list(shape = 22, size = 6, color = NA)),
+           color = "none"        # hide color legend (redundant)
+    )+
+    stat_pvalue_manual(
+      comparisons_plot,
+      label = "p.adj.signif"
+    )
   
+  print(fiddle)
   #list(c("a","i"), c("i","u"), c("y","ɯ"), c("ɯ","u"))
   
   #boxplot(distances ~ segments)

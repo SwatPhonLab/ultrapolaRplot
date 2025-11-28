@@ -37,6 +37,7 @@ library(car)
 library(ggplot2)
 library(ggsignif)
 library(ggpubr)
+library(rstatix)
 ```
 
 ```{r}
@@ -2007,6 +2008,8 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   intersections_grouped = na.omit(intersections_grouped)
   #print(intersections_grouped)
   pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
+  
+  
   #null hypothesis -- all group means are equal
   distances <- intersections_grouped$values
   segments <- intersections_grouped$categories
@@ -2049,46 +2052,68 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   # stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test",
   #                      ref.group = "0.5")
   
-  p <- ggboxplot(data2, x = "Groups", y = "Values", color = "black") +
-    stat_compare_means(
-      comparisons = combos_list,
-      method = "t.test",
-      paired = FALSE,
-      var.equal = FALSE,
-      label = "p.format",
-      pool.sd = FALSE,
-      p.adjust.method = "bonferroni"
-    )
   
-  print(p)
+  comparisons_plot = compare_means(Values ~ Groups, data = data2, 
+    method = "t.test",
+    paired = FALSE,
+    var.equal = FALSE,
+    pool.sd = FALSE, 
+    p.adjust.method = "bonferroni")
+  
+  print(comparisons_plot)
+  #comparisons_plot <- comparisons_plot %>% mutate(p.adj.signif = signif_stars(p.adj))
+  #comparisons_plot <- comparisons_plot %>% add_xy_position(x = "Groups")
+  comparisons_plot <- comparisons_plot %>% add_significance(p.col = "p.adj", output.col = "p.adj.signif")
+  comparisons_plot <- comparisons_plot %>% add_y_position(data = data2, formula = Values ~ Groups)
+  pAdj <- ggboxplot(data2, x = "Groups", y = "Values", color = "black") +
+  stat_pvalue_manual(
+    comparisons_plot,
+    label = "p.adj.signif"
+  )
+  print(pAdj)
+  
+  
+  # p <- ggboxplot(data2, x = "Groups", y = "Values", color = "black") +
+  #   stat_compare_means(
+  #     comparisons = combos_list,
+  #     method = "t.test",
+  #     paired = FALSE,
+  #     var.equal = FALSE,
+  #     aes(label=..p.adj..),
+  #     pool.sd = FALSE,
+  #     p.adjust.method = "bonferroni"
+  #   )
+  # 
+  # print(p)
   #print(compare_means(Values ~ Groups,  data = data2, method = "t.test"))
   
+  # fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
+  #        add = "boxplot", add.params = list(fill = "white"))+
+  #   guides(fill = guide_legend(override.aes = list(shape = 22, size = 6, color = NA)),
+  #   color = "none"        # hide color legend (redundant)
+  # )+
+  # stat_compare_means(
+  #     comparisons = combos_list,
+  #     method = "t.test",
+  #     paired = FALSE,
+  #     var.equal = FALSE,
+  #     aes(label=..p.adj..),
+  #     pool.sd = FALSE, 
+  #     p.adjust.method = "bonferroni"
+  #   ) 
   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
          add = "boxplot", add.params = list(fill = "white"))+
     guides(fill = guide_legend(override.aes = list(shape = 22, size = 6, color = NA)),
     color = "none"        # hide color legend (redundant)
   )+
-  stat_compare_means(
-      comparisons = combos_list,
-      method = "t.test",
-      paired = FALSE,
-      var.equal = FALSE,
-      label = "p.format",
-      pool.sd = FALSE, 
-      p.adjust.method = "bonferroni"
-    ) 
+  stat_pvalue_manual(
+    comparisons_plot,
+    label = "p.adj.signif"
+  )
   
   print(fiddle)
   #list(c("a","i"), c("i","u"), c("y","ɯ"), c("ɯ","u"))
- 
-  comparisons_plot = compare_means(Values ~ Groups, data = data2, 
-      method = "t.test",
-      paired = FALSE,
-      var.equal = FALSE,
-      pool.sd = FALSE, 
-      p.adjust.method = "bonferroni")
-  
-  print(comparisons_plot)
+
   #boxplot(distances ~ segments)
   #qqnorm(distances) #would be nice to group by segments
   #summary(anova_results) p-value for whether some of the groups have signifanct mean differences
