@@ -1660,8 +1660,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
 
 ```{r}
 #rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
-#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
-rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")
+rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
+#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")
 ```
 ```{r}
 
@@ -1684,10 +1684,10 @@ Grey = '#939799'
 Grey1 = '#555555'
 LightPurple = '#CBC3E3'
 
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"), categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('u'), c('ɯ', 'ɯː'), c('ɛ'), c('œ'), c('a'), c('ɔ')),  maskCategories = c("i/iː", "y/yː", "u", "ɯ/ɯː", "ɛ", "œ", "ɑ", "ɔ"), palette = c(LightGreen, DarkGreen, LightGreen, Pink, DarkBlue, DarkBlue, DarkRed, LightRed), means.styles = c(1,2,1,2,1,2,1,2), legend.size=0.8, legend.position="topleft", legend.linewidth=0.5, percentage_back = c(0.35), angle_pos = c(10), parallelRays = TRUE, perpendicularRays = TRUE, h = 0)
+# filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow"), categoriesAll = list(c('u'), c('a'), c('ɔ')),  maskCategories = c("u", "ɑ", "ɔ"), palette = c(LightGreen, DarkGreen, LightGreen, DarkRed, DarkBlue, DarkBlue, DarkRed, LightRed), means.styles = c(1,2,1,2,1,2,1,2), legend.size=0.8, legend.position="topleft", legend.linewidth=0.5, percentage_back = c(0.35), angle_pos = c(10), parallelRays = TRUE, perpendicularRays = TRUE, h = 0)
 
 
-# plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('ə'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE, h = 1, percentage_front = c(0.1, 0.3, 0.5, 0.6, 0.7, 0.9), percentage_back = c(0.1, 0.3, 0.5, 0.8), points.display = TRUE) #c('i'),c('y')
+x <- plotTraces(rawTraces, categoriesAll = list(c('a'), c('ʊ'), c('u'), c('ʏ'), c('ə'), c('ɘ')), legend.size = 1.0, legend.position = "bottomright", perpendicularRays = TRUE, parallelRays = TRUE, h = 1, percentage_front = c(0.5), percentage_back = c(0.5), points.display = TRUE) #c('i'),c('y')
 
 #add 
 #put into pdf
@@ -2004,8 +2004,9 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   }
   
   intersections_grouped <- data.frame(values, categories)
+  intersections_grouped = na.omit(intersections_grouped)
   #print(intersections_grouped)
-  pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, na.rm = TRUE, p.adjust.method = "bonferroni")
+  pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
   #null hypothesis -- all group means are equal
   distances <- intersections_grouped$values
   segments <- intersections_grouped$categories
@@ -2045,10 +2046,19 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   
   # stat_compare_means(comparisons = combos_list, label = "p.signif", na.rm = TRUE, method = "t.test", p.adjust.method = "bonferroni",
   #                   var.equal = FALSE, ref.group = 0.5)
+  # stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test",
+  #                      ref.group = "0.5")
   
   p <- ggboxplot(data2, x = "Groups", y = "Values", color = "black") +
-    stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test",
-                       ref.group = "0.5")
+    stat_compare_means(
+      comparisons = combos_list,
+      method = "t.test",
+      paired = FALSE,
+      var.equal = FALSE,
+      label = "p.format",
+      pool.sd = FALSE,
+      p.adjust.method = "bonferroni"
+    )
   
   print(p)
   #print(compare_means(Values ~ Groups,  data = data2, method = "t.test"))
@@ -2058,13 +2068,27 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
     guides(fill = guide_legend(override.aes = list(shape = 22, size = 6, color = NA)),
     color = "none"        # hide color legend (redundant)
   )+
-  stat_compare_means(comparisons = combos_list, label = "p.signif", method = "t.test",
-                       ref.group = "0.5")
-  print(fiddle)
+  stat_compare_means(
+      comparisons = combos_list,
+      method = "t.test",
+      paired = FALSE,
+      var.equal = FALSE,
+      label = "p.format",
+      pool.sd = FALSE, 
+      p.adjust.method = "bonferroni"
+    ) 
   
+  print(fiddle)
   #list(c("a","i"), c("i","u"), c("y","ɯ"), c("ɯ","u"))
  
-  comparisons_plot = compare_means(Values ~ Groups, data = data2, method = "t.test", p.adjust.method = "bonferroni", var.equal = FALSE)
+  comparisons_plot = compare_means(Values ~ Groups, data = data2, 
+      method = "t.test",
+      paired = FALSE,
+      var.equal = FALSE,
+      pool.sd = FALSE, 
+      p.adjust.method = "bonferroni")
+  
+  print(comparisons_plot)
   #boxplot(distances ~ segments)
   #qqnorm(distances) #would be nice to group by segments
   #summary(anova_results) p-value for whether some of the groups have signifanct mean differences
