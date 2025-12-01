@@ -997,7 +997,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                             maskCategories = c(), rays = list(), parallelRays =
                               FALSE,
                             quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5,
-                            percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c()){
+                            percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey"){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1212,6 +1212,10 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     }else if (legend.position == "bottomright"){
       # legend((xPlotAverage + .5*plotbounds[[2]]), yPlotAverage,  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol = round(length(uniqueSegments)/5))
       legend("bottomright",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+    } else if (legend.position == "bottomleft"){
+      legend("bottomleft",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+    } else if (legend.position == "topright"){
+      legend("topright",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
     }
   }
   
@@ -1295,7 +1299,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       y_1l = y_target_l + sin((atan(perp_l) + pi)) * up_l
       front_x_l = append(front_x_l, x_1l)
       front_y_l = append(front_y_l, y_1l)
-      points(x_1l,  y_1l, col = "pink", pch = 19)
+      points(x_1l,  y_1l, col = ray_color, pch = 19)
       
       adjusted_angle = 0
       if (length(angle_neg)!=0){
@@ -1319,7 +1323,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
           end_coordinate = averaged_everything[[12]]
         }
       }
-      segments(x_1l,  y_1l, end_coordinate,  y_1l - ((tan(adjusted_angle))*(x_1l - end_coordinate)), col = "pink", lwd = 2, lty = 2)
+      segments(x_1l,  y_1l, end_coordinate,  y_1l - ((tan(adjusted_angle))*(x_1l - end_coordinate)), col = ray_color, lwd = 2, lty = 2)
       # print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
@@ -1339,7 +1343,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       y_1m = y_target_m + sin(atan(perp_m)) * up_m
       back_x_m = append(back_x_m, x_1m)
       back_y_m = append(back_y_m, y_1m)
-      points(x_1m, y_1m, col = "pink", pch = 19)
+      points(x_1m, y_1m, col = ray_color, pch = 19)
       
       adjusted_angle = 0
       if (length(angle_pos)!=0){
@@ -1362,7 +1366,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
         }
       }
       
-      segments(x_1m, y_1m, end_coordinate, y_1m + (tan(adjusted_angle))*(end_coordinate - x_1m), col = "pink", lwd = 2, lty = 2)
+      segments(x_1m, y_1m, end_coordinate, y_1m + (tan(adjusted_angle))*(end_coordinate - x_1m), col = ray_color, lwd = 2, lty = 2)
       # print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
       
     }
@@ -1602,7 +1606,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), parallelRays = FALSE,
                        quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5, percentage_front = c(),
-                       percentage_back = c(), angle_neg = c(), angle_pos = c()){
+                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey"){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1627,7 +1631,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                         maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
                           quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage, 
-                        percentage_front = percentage_front, percentage_back = percentage_back, angle_neg = angle_neg, angle_pos = angle_pos)
+                        percentage_front = percentage_front, percentage_back = percentage_back, angle_neg = angle_neg, angle_pos = angle_pos,
+                        ray_color = ray_color)
   #return(rx)
   return(rawTraces)
 }
