@@ -1928,7 +1928,7 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #   ) 
   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
                      add = "boxplot", add.params = list(fill = "white"))+
-    guides(fill = guide_legend(override.aes = list(shape = 22, size = 6, color = NA)),
+    guides(fill = guide_legend(override.aes = list(shape = 22, size = 6)),
            color = "none"        # hide color legend (redundant)
     )+
     stat_pvalue_manual(
