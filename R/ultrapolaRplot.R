@@ -997,7 +997,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                             maskCategories = c(), rays = list(), parallelRays =
                               FALSE,
                             quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5,
-                            percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey"){
+                            percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey",
+                            elbow_color = "black"){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1080,7 +1081,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
-  print(averaged_everything)
+  # print(averaged_everything)
   
   #we now have the standard deviation
   xSDHigh <- list()
@@ -1224,8 +1225,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   
   if (length(rays) > 0) {
-    print("lLENGTH")
-    print(length(rays))
+    # print("lLENGTH")
+    # print(length(rays))
     for (ray in 1:length(rays)){
       col_user = "pink"
       if (rays[[ray]][[4]] != 0){
@@ -1268,8 +1269,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     b2 <- y_xl - perp_l * start_xl
     
     x_adjusted_l <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
-    print("adjustedl")
-    print(x_adjusted_l)
+    # print("adjustedl")
+    # print(x_adjusted_l)
     y_adjusted_l <- averaged_everything[[1]] * x_adjusted_l +  averaged_everything[[3]]
     
     end_xm = hx_coor_m
@@ -1307,11 +1308,11 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       }
       adjusted_angle = -adjusted_angle + atan(perp_l) + pi 
       neg_adjusted_angle = append(neg_adjusted_angle, adjusted_angle)
-      print("ADJUSTED ANGLEEE")
-      print(adjusted_angle)
-      print(tan(adjusted_angle))
-      print(y_1l)
-      print(y_1l + (tan(adjusted_angle))*(x_1l - averaged_everything[[11]]))
+      # print("ADJUSTED ANGLEEE")
+      # print(adjusted_angle)
+      # print(tan(adjusted_angle))
+      # print(y_1l)
+      # print(y_1l + (tan(adjusted_angle))*(x_1l - averaged_everything[[11]]))
       end_coordinate = averaged_everything[[11]]
       sign_switch = FALSE
       if (adjusted_angle > pi){
@@ -1351,9 +1352,9 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       }
       adjusted_angle = -adjusted_angle + atan(perp_m) 
       pos_adjusted_angle = append(pos_adjusted_angle, adjusted_angle)
-      print("POS")
-      print(adjusted_angle)
-      print(tan(adjusted_angle))
+      # print("POS")
+      # print(adjusted_angle)
+      # print(tan(adjusted_angle))
       end_coordinate = averaged_everything[[12]]
       sign_switch = FALSE
       if (adjusted_angle < 0){
@@ -1385,7 +1386,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (segment in 1:length(uniqueSegments)){
       # points(slopes_segments[[uniqueSegments[[segment]]]][[7]], slopes_segments[[segment]][[8]], col = "red", pch = 19)
       # points(slopes_segments[[uniqueSegments[[segment]]]][[9]], slopes_segments[[segment]][[10]], col = "blue", pch = 19)
-      points(slopes_segments[[uniqueSegments[[segment]]]][[5]], slopes_segments[[segment]][[6]], col = "black", pch = 19)
+      points(slopes_segments[[uniqueSegments[[segment]]]][[5]], slopes_segments[[segment]][[6]], col = elbow_color, pch = 19, cex = .8)
     }
   }
   
@@ -1606,7 +1607,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), parallelRays = FALSE,
                        quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5, percentage_front = c(),
-                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey"){
+                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey", elbow_color = "black"){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1632,7 +1633,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
                           quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage, 
                         percentage_front = percentage_front, percentage_back = percentage_back, angle_neg = angle_neg, angle_pos = angle_pos,
-                        ray_color = ray_color)
+                        ray_color = ray_color, elbow_color = elbow_color)
   #return(rx)
   return(rawTraces)
 }
