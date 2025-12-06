@@ -1731,7 +1731,7 @@ LightPurple = '#CBC3E3'
 # DarkBlue = '#0000FF'
 # findX2 <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2"), categoriesAll = list(c('lʲ.#_V.F', 'lʲ.V_#.F', 'lʲ.V_V.FF', 'lʲ.#_V.B', 'lʲ.V_#.B', 'lʲ.V_V.BB'), c('nʲ.#_V.B', 'nʲ.V_#.B', 'nʲ.V_V.BB', 'nʲ.#_V.F', 'nʲ.V_#.F', 'nʲ.V_V.FF'),  c('mʲ.#_V.F', 'mʲ.V_#.F', 'mʲ.V_V.FF', 'mʲ.#_V.B', 'mʲ.V_#.B', 'mʲ.V_V.BB'), c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_V.FF', 'zʲ.V_#.B'), c('kʲ.#_V.F', 'gʲ.#_V.F', 'gʲ.V_V.FF'), c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), maskCategories = c("lʲ", "nʲ", "mʲ", "Sʲ", "Kʲ", "ɫ", "nˠ", "mˠ", "Sˠ", "Kˠ"), palette = c(DarkBlue, DarkBlue, DarkBlue, DarkBlue, DarkBlue, DarkRed, DarkRed, DarkRed, DarkRed, DarkRed), means.styles = c(1,2,3,4,5,1,2,3,4,5), parallelRays = TRUE, perpendicularRays = TRUE, h = 1, percentage_front = c(0.58, 0.2), percentage_back = c(0.3), legend.size=1.5, legend.position = "bottomleft", ray_color = "orange", quartile_points = TRUE)
 
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"), categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('u'), c('ɯ', 'ɯː'), c('ɛ'), c('œ'), c('a'), c('ɔ')),  maskCategories = c("i/iː", "y/yː", "u", "ɯ/ɯː", "ɛ", "œ", "ɑ", "ɔ"), palette = c(LightBlue, LightBlue, Pink, Pink, DarkBlue, DarkBlue, DarkRed, LightRed), means.styles = c(1,2,1,2,1,2,1,2), legend.size=0.8, legend.position="topleft", legend.linewidth=0.5, percentage_front = c(0.45), percentage_back = c(0.35, 0.7), parallelRays = TRUE, perpendicularRays = TRUE, h = 1)
+filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"), categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('u'), c('ɯ', 'ɯː'), c('ɛ'), c('œ'), c('a'), c('ɔ')),  maskCategories = c("i/iː", "y/yː", "u", "ɯ/ɯː", "ɛ", "œ", "ɑ", "ɔ"), palette = c(LightBlue, LightBlue, Pink, Pink, DarkBlue, DarkBlue, DarkRed, LightRed), means.styles = c(1,2,1,2,1,2,1,2), legend.size=0.8, legend.position="topleft", legend.linewidth=0.5, percentage_front = c(0.45), percentage_back = c(0.35, 0.7), parallelRays = TRUE, perpendicularRays = TRUE, h = 1, pdf.filename = "testLegendSize.pdf")
 
 
 
@@ -2154,7 +2154,7 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #   ) 
   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
          add = "boxplot", add.params = list(fill = "white"))+
-    guides(fill = guide_legend(override.aes = list(shape = 22, size = 6, colour = paletteC )),
+    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC )),
     color = "none"        # hide color legend (redundant)
   )+
   stat_pvalue_manual(
