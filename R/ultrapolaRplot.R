@@ -1381,7 +1381,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       }
       
       pos_adjusted_angle = append(pos_adjusted_angle, adjusted_angle)
-      perp_m. = tan(adjusted_angle)
+      perp_m = tan(adjusted_angle)
       
       y_target_m = on_y_m + perp_m*(x_min - on_x_m)
       up_m = ray_up(rawTraces, x_coor = x_min, y_coor = y_target_m, angle = atan(perp_m))
