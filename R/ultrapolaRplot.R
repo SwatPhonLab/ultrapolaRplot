@@ -1996,4 +1996,3 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #summary(anova_results) p-value for whether some of the groups have signifanct mean differences
   return(pairwise_results) #or anova(anova_fit)
 }
-}
