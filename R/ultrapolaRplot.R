@@ -1978,10 +1978,11 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #   ) 
   
   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
-                     add = "boxplot", add.params = list(fill = "white"))+
+                     add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
     guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC)),
            color = "none"        # hide color legend (redundant)
     )+
+    theme(axis.text.x = element_text(size = 20), axis.text.y = element_text(size = 20))+
     stat_pvalue_manual(
       comparisons_plot,
       label = "p.adj.signif"
@@ -1994,4 +1995,5 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #qqnorm(distances) #would be nice to group by segments
   #summary(anova_results) p-value for whether some of the groups have signifanct mean differences
   return(pairwise_results) #or anova(anova_fit)
+}
 }
