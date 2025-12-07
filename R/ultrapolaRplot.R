@@ -1004,7 +1004,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                               FALSE,
                             quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5,
                             percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey",
-                            elbow_color = "black"){
+                            elbow_color = "black", origin.algorithm = "BottomMiddle"){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1305,7 +1305,14 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       y_target_l = on_y_l + perp_l*(x_max - on_x_l)
       # print("angle perpedicular valuee")
       # print((atan(perp_l) + pi))
-      up_l = ray_up(rawTraces, x_coor = x_max, y_coor = y_target_l, angle = (atan(perp_l) + pi))
+      adjusted_angle = 0
+      if (length(angle_neg)!=0){
+        adjusted_angle = (angle_neg[[p]])*pi/180
+      }
+      adjusted_angle = -adjusted_angle + atan(perp_l) + pi 
+      neg_adjusted_angle = append(neg_adjusted_angle, adjusted_angle)
+      
+      up_l = ray_up(rawTraces, x_coor = x_max, y_coor = y_target_l, angle = adjusted_angle, origin.algorithm = origin.algorithm)
       # print("maximum x is")
       # print(max(df[,12]))
       # print(y_target_l)
@@ -1317,12 +1324,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       front_y_org = append(front_y_org, y_target_l)
       points(x_1l,  y_1l, col = ray_color, pch = 19)
       
-      adjusted_angle = 0
-      if (length(angle_neg)!=0){
-        adjusted_angle = (angle_neg[[p]])*pi/180
-      }
-      adjusted_angle = -adjusted_angle + atan(perp_l) + pi 
-      neg_adjusted_angle = append(neg_adjusted_angle, adjusted_angle)
+      
+      
       # print("ADJUSTED ANGLEEE")
       # print(adjusted_angle)
       # print(tan(adjusted_angle))
@@ -1433,7 +1436,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print("percentage along")
       print(percentage_front[[p]])
       # print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
   
@@ -1442,7 +1445,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print("PAIRWISE COMPARISON POSITIVE ANGLE")
       print(pos_adjusted_angle[[p]])
       print(percentage_back[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
   
@@ -1660,7 +1663,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
                           quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage, 
                         percentage_front = percentage_front, percentage_back = percentage_back, angle_neg = angle_neg, angle_pos = angle_pos,
-                        ray_color = ray_color, elbow_color = elbow_color)
+                        ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm)
   #return(rx)
   return(rawTraces)
 }
