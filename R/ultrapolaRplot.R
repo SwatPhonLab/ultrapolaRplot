@@ -1298,19 +1298,33 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   x_max = max(df[,12])
   
   neg_adjusted_angle = c()
+  perp_l_original = perp_l
   if (length(percentage_front)!=0){
     for (p in 1:length(percentage_front)){
       on_x_l = x_int + (x_adjusted_l - x_int)*percentage_front[[p]]
       on_y_l = y_int + (y_adjusted_l - y_int)*percentage_front[[p]]
-      y_target_l = on_y_l + perp_l*(x_max - on_x_l)
-      # print("angle perpedicular valuee")
-      # print((atan(perp_l) + pi))
+      
       adjusted_angle = 0
       if (length(angle_neg)!=0){
         adjusted_angle = (angle_neg[[p]])*pi/180
       }
-      adjusted_angle = -adjusted_angle + atan(perp_l) + pi 
+      adjusted_angle = -adjusted_angle + atan(perp_l_original) + pi 
+      
+      sign_switch = FALSE
+      if (adjusted_angle > pi){
+        adjusted_angle = (adjusted_angle - pi)
+        sign_switch = TRUE
+      }
+      
       neg_adjusted_angle = append(neg_adjusted_angle, adjusted_angle)
+      
+      perp_l = tan(adjusted_angle)
+      print("SLOPEEE ")
+      print(perp_l)
+      
+      y_target_l = on_y_l + perp_l*(x_max - on_x_l)
+      # print("angle perpedicular valuee")
+      # print((atan(perp_l) + pi))
       
       up_l = ray_up(rawTraces, x_coor = x_max, y_coor = y_target_l, angle = adjusted_angle, origin.algorithm = origin.algorithm)
       # print("maximum x is")
@@ -1332,11 +1346,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       # print(y_1l)
       # print(y_1l + (tan(adjusted_angle))*(x_1l - averaged_everything[[11]]))
       end_coordinate = averaged_everything[[11]]
-      sign_switch = FALSE
-      if (adjusted_angle > pi){
-        adjusted_angle = (adjusted_angle - pi)
-        sign_switch = TRUE
-      }
       if (tan(adjusted_angle) > 0){
         if (!sign_switch){
           end_coordinate = averaged_everything[[12]]
@@ -1354,10 +1363,26 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   x_min = min(df[,11])
   
   pos_adjusted_angle = c()
+  perp_m_original = perp_m
   if (length(percentage_back)!=0){
     for (p in 1:length(percentage_back)){
       on_x_m = x_int + (x_adjusted_m - x_int)*percentage_back[[p]]
       on_y_m = y_int + (y_adjusted_m - y_int)*percentage_back[[p]]
+      
+      adjusted_angle = 0
+      if (length(angle_pos)!=0){
+        adjusted_angle = (angle_pos[[p]])*pi/180
+      }
+      adjusted_angle = -adjusted_angle + atan(perp_m_original) 
+      sign_switch = FALSE
+      if (adjusted_angle < 0){
+        adjusted_angle = (adjusted_angle + pi)
+        sign_switch = TRUE
+      }
+      
+      pos_adjusted_angle = append(pos_adjusted_angle, adjusted_angle)
+      perp_m. = tan(adjusted_angle)
+      
       y_target_m = on_y_m + perp_m*(x_min - on_x_m)
       up_m = ray_up(rawTraces, x_coor = x_min, y_coor = y_target_m, angle = atan(perp_m))
       x_1m = x_min + cos(atan(perp_m)) * up_m
@@ -1368,21 +1393,12 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       back_y_org = append(back_y_org, y_target_m)
       points(x_1m, y_1m, col = ray_color, pch = 19)
       
-      adjusted_angle = 0
-      if (length(angle_pos)!=0){
-        adjusted_angle = (angle_pos[[p]])*pi/180
-      }
-      adjusted_angle = -adjusted_angle + atan(perp_m) 
-      pos_adjusted_angle = append(pos_adjusted_angle, adjusted_angle)
+      
       # print("POS")
       # print(adjusted_angle)
       # print(tan(adjusted_angle))
       end_coordinate = averaged_everything[[12]]
-      sign_switch = FALSE
-      if (adjusted_angle < 0){
-        adjusted_angle = (adjusted_angle + pi)
-        sign_switch = TRUE
-      }
+      
       if (tan(adjusted_angle) < 0){
         if (!sign_switch){
           end_coordinate = averaged_everything[[11]]
@@ -1841,9 +1857,9 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
     differences2 <- differences[-(remove_categories)]
     if (length(mask) != 0){
       mask <- mask[-(remove_categories)]
-      if (length(paletteC) > 0){
-        paletteC <- paletteC[-(remove_categories)]
-      }
+    }
+    if (length(paletteC) > 0){
+      paletteC <- paletteC[-(remove_categories)]
     }
   }else{
     differences2 <- differences
@@ -1960,9 +1976,10 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #     pool.sd = FALSE, 
   #     p.adjust.method = "bonferroni"
   #   ) 
+  
   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
                      add = "boxplot", add.params = list(fill = "white"))+
-    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC )),
+    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC)),
            color = "none"        # hide color legend (redundant)
     )+
     stat_pvalue_manual(
