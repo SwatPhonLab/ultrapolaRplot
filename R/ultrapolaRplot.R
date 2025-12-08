@@ -1319,8 +1319,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       neg_adjusted_angle = append(neg_adjusted_angle, adjusted_angle)
       
       perp_l = tan(adjusted_angle)
-      print("SLOPEEE ")
-      print(perp_l)
       
       y_target_l = on_y_l + perp_l*(x_max - on_x_l)
       # print("angle perpedicular valuee")
@@ -1364,6 +1362,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   pos_adjusted_angle = c()
   perp_m_original = perp_m
+  print("original slope")
+  print(perp_m_original)
   if (length(percentage_back)!=0){
     for (p in 1:length(percentage_back)){
       on_x_m = x_int + (x_adjusted_m - x_int)*percentage_back[[p]]
@@ -1375,16 +1375,27 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       }
       adjusted_angle = -adjusted_angle + atan(perp_m_original) 
       sign_switch = FALSE
-      if (adjusted_angle < 0){
-        adjusted_angle = (adjusted_angle + pi)
-        sign_switch = TRUE
+      if (length(angle_pos)!=0){
+        if (adjusted_angle < 0){
+          adjusted_angle = (adjusted_angle + pi)
+          sign_switch = TRUE
+        }
       }
+      
       
       pos_adjusted_angle = append(pos_adjusted_angle, adjusted_angle)
       perp_m = tan(adjusted_angle)
       
       y_target_m = on_y_m + perp_m*(x_min - on_x_m)
-      up_m = ray_up(rawTraces, x_coor = x_min, y_coor = y_target_m, angle = atan(perp_m))
+      up_m = ray_up(rawTraces, x_coor = x_min, y_coor = y_target_m, angle = atan(perp_m), origin.algorithm = origin.algorithm)
+      print("DISTANCE TO MOVE UP")
+      print(up_m)
+      print("CHANGE IN X")
+      print(x_min)
+      print(cos(atan(perp_m)) * up_m)
+      print("CHANGE IN Y")
+      print(y_target_m)
+      print(sin(atan(perp_m)) * up_m)
       x_1m = x_min + cos(atan(perp_m)) * up_m
       y_1m = y_target_m + sin(atan(perp_m)) * up_m
       back_x_m = append(back_x_m, x_1m)
@@ -1399,9 +1410,11 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       # print(tan(adjusted_angle))
       end_coordinate = averaged_everything[[12]]
       
-      if (tan(adjusted_angle) < 0){
-        if (!sign_switch){
-          end_coordinate = averaged_everything[[11]]
+      if (length(angle_pos)!=0){
+        if (tan(adjusted_angle) < 0){
+          if (!sign_switch){
+            end_coordinate = averaged_everything[[11]]
+          }
         }
       }
       
@@ -1461,6 +1474,12 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print("PAIRWISE COMPARISON POSITIVE ANGLE")
       print(pos_adjusted_angle[[p]])
       print(percentage_back[[p]])
+      
+      print(back_x_org[[p]])
+      print(back_y_org[[p]])
+      print(pos_adjusted_angle[[p]])
+      print(tan(pos_adjusted_angle[[p]]))
+      
       print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
@@ -1559,14 +1578,18 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
 ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
                    scaling.factor = 800/600, x_coor, y_coor, angle, mask = c(), paletteC = c()){
   
-  polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
+  polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor = x_coor, y_coor = y_coor)
   
   rayIncrement = 3.14159/180 * interval 
   uniqueSegments <- get_unique_segments(filteredTraces)
   dataOfEachCurveNNj <- read_in_data(filteredTraces)
   
   matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle)
+  # print("in ray up right aftewards")
+  # print(matrixIntersection)
   differences <- sapply(matrixIntersection, function(x) t(x))
+  # print("transposed")
+  # print(differences)
   
   values <- c()
   categories <- c()
@@ -1587,6 +1610,7 @@ ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origi
   }else{
     differences2 <- differences
   }
+  
   
   values <- as.vector(unlist(differences2))
   
