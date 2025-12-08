@@ -1004,7 +1004,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                               FALSE,
                             quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5,
                             percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey",
-                            elbow_color = "black", origin.algorithm = "BottomMiddle"){
+                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1083,7 +1083,98 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     segment_slope <- find_curvature(averagedRX[[uniqueSegments[[segment]]]], averagedRY[[uniqueSegments[[segment]]]])
     slopes_segments[[uniqueSegments[[segment]]]] <- segment_slope
   }
-  
+  if (bubble){
+    ########### Clusters ###################
+    curvature_points_x = list()
+    curvature_points_y = list()
+    for (segment in 1:length(uniqueSegments)){
+      curvature_points_x[[uniqueSegments[[segment]]]] <- list()
+      curvature_points_y[[uniqueSegments[[segment]]]] <- list()
+    }
+    
+    for (segment in 1:length(uniqueSegments)){
+      seg_name <- uniqueSegments[[segment]]
+      # each individual trace x y curvature
+      for (trace in 1:nrow(matrixIntersection[[seg_name]])){
+        trace_rx <- c()
+        trace_ry <- c()
+        for (ray in 1:ncol(matrixIntersection[[seg_name]])){
+          if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
+            trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+            trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+          } else {
+            trace_rx <- append(trace_rx, NA)
+            trace_ry <- append(trace_ry, NA)
+          }
+        }
+        curvature_point <- x_y_curvature(trace_rx, trace_ry)
+        
+        curvature_points_x[[seg_name]] <- append(curvature_points_x[[seg_name]], curvature_point[1])
+        curvature_points_y[[seg_name]] <- append(curvature_points_y[[seg_name]], curvature_point[2])
+      }
+      curvature_points_x[[seg_name]] <- unlist(curvature_points_x[[seg_name]])
+      curvature_points_y[[seg_name]] <- unlist(curvature_points_y[[seg_name]])
+    }
+    
+    all_points <- data.frame()
+    for (segment in 1:length(uniqueSegments)){
+      seg_name <- uniqueSegments[[segment]]
+      segment_df <- data.frame(
+        x = curvature_points_x[[seg_name]],
+        y = curvature_points_y[[seg_name]],
+        segment = seg_name
+      )
+      all_points <- rbind(all_points, segment_df)
+    }
+    all_points <- na.omit(all_points)
+    
+    # Calculate distance from origin for each point
+    all_points$distance_from_origin <- sqrt(all_points$x^2 + all_points$y^2)
+    
+    # Pairwise t-tests
+    pairwise_results <- pairwise.t.test(all_points$distance_from_origin, all_points$segment, 
+                                        paired = FALSE, pool.sd = FALSE, 
+                                        p.adjust.method = "bonferroni")
+    print("COMPARING PAIRWISE DISTANCES BETWEEN CLUSTERS")
+    print(pairwise_results)
+    
+    # Extract significant pairs from p-value matrix
+    sig_pairs_list <- list()
+    p_matrix <- pairwise_results$p.value
+    for (i in 1:nrow(p_matrix)) {
+      for (j in 1:ncol(p_matrix)) {
+        if (!is.na(p_matrix[i, j]) && p_matrix[i, j] < 0.05) {
+          pair_name <- paste(rownames(p_matrix)[i], "vs", colnames(p_matrix)[j])
+          sig_pairs_list[[length(sig_pairs_list) + 1]] <- list(pairs = pair_name, p.adjusted = p_matrix[i, j])
+        }
+      }
+    }
+    sig_pairs <- do.call(rbind.data.frame, sig_pairs_list)
+    
+    color_mapping = setNames(unlist(palette), uniqueSegments)
+    bubble_comp <- ggplot(all_points, aes(x = x, y = y, color = segment, fill = segment)) +
+      geom_point(alpha = 0.6, size = 2) +
+      stat_ellipse(level = 0.95, geom = "polygon", alpha = 0.2, linewidth = 1) +  # transparent fill
+      scale_color_manual(values = color_mapping) +
+      scale_fill_manual(values = color_mapping) +
+      theme_minimal() +
+      coord_equal()
+    
+    if (nrow(sig_pairs) > 0) {
+      sig_text <- paste(sig_pairs$pairs, collapse = "\n")
+      
+      bubble_comp <- bubble_comp +
+        annotate("text", x = Inf, y = Inf, 
+                 label = paste("Significant comparisons:\n", sig_text),
+                 hjust = 1.1, vjust = 1.1, size = 3, 
+                 color = "black")
+    }
+    
+    print(bubble_comp)
+    
+    
+    ########### Clusters ###################
+  }
   #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
@@ -1362,8 +1453,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   pos_adjusted_angle = c()
   perp_m_original = perp_m
-  print("original slope")
-  print(perp_m_original)
   if (length(percentage_back)!=0){
     for (p in 1:length(percentage_back)){
       on_x_m = x_int + (x_adjusted_m - x_int)*percentage_back[[p]]
@@ -1388,14 +1477,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       
       y_target_m = on_y_m + perp_m*(x_min - on_x_m)
       up_m = ray_up(rawTraces, x_coor = x_min, y_coor = y_target_m, angle = atan(perp_m), origin.algorithm = origin.algorithm)
-      print("DISTANCE TO MOVE UP")
-      print(up_m)
-      print("CHANGE IN X")
-      print(x_min)
-      print(cos(atan(perp_m)) * up_m)
-      print("CHANGE IN Y")
-      print(y_target_m)
-      print(sin(atan(perp_m)) * up_m)
       x_1m = x_min + cos(atan(perp_m)) * up_m
       y_1m = y_target_m + sin(atan(perp_m)) * up_m
       back_x_m = append(back_x_m, x_1m)
@@ -1659,6 +1740,38 @@ find_curvature <- function(xargs, yargs, split_point = 0.5){
   
 }
 
+x_y_curvature <- function(xargs, yargs, split_point = 0.5){
+  
+  x_args <- rev(xargs[!is.na(xargs)])
+  y_args <- rev(yargs[!is.na(yargs)])
+  
+  
+  chordlength <- ceiling(length(x_args)/2)
+  distances <- list()
+  
+  for (point in 1:(length(x_args) - chordlength)){
+    x_1 = x_args[point]
+    x_2 = x_args[point + chordlength]
+    y_1 = y_args[point]
+    y_2 = y_args[point + chordlength]
+    x_middle = (x_1 + x_2)/2
+    y_middle = (y_1 + y_2)/2
+    
+    curve_x = x_args[point + chordlength/2]
+    curve_y = y_args[point + chordlength/2]
+    
+    distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
+    distances <- append(distances, distance)
+  }
+  distances <- unlist(distances)
+  
+  split_index <- which(distances == max(distances))
+  center_x_split <- x_args[split_index + chordlength/2]
+  center_y_split <- y_args[split_index + chordlength/2]
+  
+  return(c(center_x_split, center_y_split))
+}
+
 plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE), origin.algorithm = "BottomMiddle", origin.x = NA,
                        scaling.factor = 800/600, 
                        interval = 1, mean.lines = TRUE, points.display = FALSE,
@@ -1668,7 +1781,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), parallelRays = FALSE,
                        quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5, percentage_front = c(),
-                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey", elbow_color = "black"){
+                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
@@ -1694,7 +1807,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
                           quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage, 
                         percentage_front = percentage_front, percentage_back = percentage_back, angle_neg = angle_neg, angle_pos = angle_pos,
-                        ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm)
+                        ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble)
   #return(rx)
   return(rawTraces)
 }
