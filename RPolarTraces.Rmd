@@ -1556,10 +1556,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print("PAIRWISE COMPARISON NEGATIVE ANGLE")
       print(neg_adjusted_angle[[p]])
       #points(front_x_l[[p]], front_y_l[[p]], col = "red")
-      # print("X Y COORDINATE")
-      # print(front_x_l[[p]])
-      # print(front_y_l[[p]])
-      print("percentage along")
       print(percentage_front[[p]])
       # print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
       print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
@@ -1571,11 +1567,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print("PAIRWISE COMPARISON POSITIVE ANGLE")
       print(pos_adjusted_angle[[p]])
       print(percentage_back[[p]])
-      
-      print(back_x_org[[p]])
-      print(back_y_org[[p]])
-      print(pos_adjusted_angle[[p]])
-      print(tan(pos_adjusted_angle[[p]]))
       
       print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
