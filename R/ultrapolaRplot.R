@@ -524,9 +524,9 @@ loadAllTracesMidPoint <- function(directory_name){
   
   rawTraces <- data.frame()
   #insert annotation later
-  column_names <- c('file_number', 'itemNumber_inFile', I(list(NA)), 'x', 'y', I(list(NA)), 'layer')
+  column_names <- c('file_number', 'itemNumber_inFile', I(list(NA)), 'x', 'y', I(list(NA)), 'layer', 'seg_text')
   rawTraces <- rbind(rawTraces, column_names)
-  colnames(rawTraces) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer')
+  colnames(rawTraces) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer', 'seg_text')
   
   
   
@@ -594,8 +594,8 @@ loadAllTracesMidPoint <- function(directory_name){
                   yvalues <- append(yvalues, yCoor)
                   
                   #lack of segment and tiers, for plotting layer name is used for segment
-                  appendedFrame <- data.frame(myFileAndFrameName, mark, layer, yCoor, xCoor, I(list(NA)), layer)
-                  colnames(appendedFrame) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer')
+                  appendedFrame <- data.frame(myFileAndFrameName, mark, layer, yCoor, xCoor, I(list(NA)), layer, layer)
+                  colnames(appendedFrame) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer', 'seg_text')
                   rawTraces <<- rbind(rawTraces, appendedFrame)
                   #layer as segment name, used for plotting.
                 }
@@ -626,6 +626,7 @@ loadAllTracesMidPoint <- function(directory_name){
         df <- df %>% mutate(mid_point = (df$xmin + df$xmax)/2) #THIS IS FINE
         df <- df %>% mutate(plainTextName = plainTextname)
         df <- df %>% mutate(layerName =  names(metaData$traces[item]))
+        
         
         textTiers <-  textGridDataFile[textGridDataFile$tier_type == "TextTier",]
         
@@ -679,6 +680,7 @@ loadAllTracesMidPoint <- function(directory_name){
             currentLayer <- df$layerName[[frame]]
             
             xyFileData <- (metaData$traces)[[currentLayer]]$files[[plainTextname]][[frameNumber]]
+            
             #need to check if there is actually annotation here]
             if (length(xyFileData) > 0) {
               annotedTrueFalse <- append(annotedTrueFalse, 1)
@@ -719,7 +721,7 @@ loadAllTracesMidPoint <- function(directory_name){
       }
       
     }
-    
+    #print(allRowsTextGrids)
     #return(allRowsTextGrids)
     #extract xy data separately
     if (length(allRowsTextGrids$frame) > 0){ 
@@ -728,6 +730,7 @@ loadAllTracesMidPoint <- function(directory_name){
         plainTextname <- allRowsTextGrids$plainTextName[[frame]]
         myFileAndFrameName <- paste(plainTextname, "_", frameNumber, sep = "")
         xyFileData <- traces_raw$files[[plainTextname]][[frameNumber]]
+        seg_text = allRowsTextGrids$text[[frame]]
         
         segments <- list(unlist(allRowsTextGrids$overlappingSegments[[frame]]))
         tiers <- list(unlist(allRowsTextGrids$overlappingTiers[[frame]]))
@@ -739,8 +742,8 @@ loadAllTracesMidPoint <- function(directory_name){
             xCoor <- xyFileData[[mark]]$x
             yCoor <- xyFileData[[mark]]$y
             
-            allFrame <- data.frame(myFileAndFrameName, itemNumber, I(segments), yCoor, xCoor, I(tiers), layerOf)
-            colnames(allFrame) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer')
+            allFrame <- data.frame(myFileAndFrameName, itemNumber, I(segments), yCoor, xCoor, I(tiers), layerOf, seg_text)
+            colnames(allFrame) <- c('file_number', 'itemNumber_inFile', 'segment', 'x', 'y', 'tiers_list', 'layer', 'seg_text')
             #print(data.frame(myFileAndFrameName, itemNumber, I(segments), xCoor, yCoor, I(tiers), layerOf))
             rawTraces <- rbind(rawTraces, allFrame)
           }
@@ -1582,12 +1585,15 @@ makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin
   return(polarTraces)
 }
 
-filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE)){
+filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE), seg_filter = list(c(NA))){
   
   expandedTraces <- rawTraces %>% unnest(c(segment, tiers_list))
   
   if (inherits(categoriesAll, "character") || inherits(categoriesAll, "NULL")){
     categoriesAll <- list(categoriesAll)
+  }
+  if (inherits(seg_filter, "character") || inherits(seg_filter, "NULL")){
+    categoriesAll <- list(seg_filter)
   }
   #padding 
   for (i in 1:length(categoriesAll)){
@@ -1599,6 +1605,9 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
     }
     if (length(mergeCategories) < length(categoriesAll)){
       mergeCategories <- append(mergeCategories, mergeCategories[[1]])
+    }
+    if (length(seg_filter) < length(categoriesAll)){
+      seg_filter <- append(seg_filter, NA)
     }
   }
   loopLength <- max(length(tiernameAll), length(categoriesAll))
@@ -1625,11 +1634,20 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
     if (!is.na(categoriesAll[[item]])[[1]]){
       temporaryTraces <- temporaryTraces[sapply(temporaryTraces$segment, function(x) any(categoriesAll[[item]] %in% x)),]
       if (nrow(temporaryTraces) == 0){
-        message(paste("segment " , categoriesAll[[item]], " does not exist within toer ", tiernameAll[[item]]))
+        message(paste("segment " , categoriesAll[[item]], " does not exist within tier ", tiernameAll[[item]]))
         next
       }
     }
-    if (!( (is.na(layersAll[[item]])[[1]] && is.na(tiernameAll[[item]])[[1]]) && is.na(categoriesAll[[item]])[[1]]) ){
+    if (!is.na(seg_filter[[item]])[[1]]){
+      print("RUNNING")
+      temporaryTraces <- temporaryTraces[grepl(seg_filter[[item]], temporaryTraces$seg_text), ]
+      #temporaryTraces <- temporaryTraces[sapply(temporaryTraces$seg_text, function(x) any(categoriesAll[[item]] %in% x)),]
+      if (nrow(temporaryTraces) == 0){
+        message(paste("seg_text " , dput(seg_filter[[item]]), " does not exist within tier ", tiernameAll[[item]]))
+        next
+      }
+    }
+    if (!( (is.na(layersAll[[item]])[[1]] && is.na(tiernameAll[[item]])[[1]]) && is.na(categoriesAll[[item]])[[1]] && is.na(seg_filter[[item]][[1]])) ){
       if (mergeCategories[[item]] == TRUE){
         if (!is.na(categoriesAll[[item]])[[1]]){
           myVowelType <- paste(categoriesAll[[item]], collapse = "")
@@ -1643,8 +1661,11 @@ filteringRawTraces <- function(rawTraces, tiernameAll = c(NA), categoriesAll = l
         filteredTraces <- rbind(filteredTraces, temporaryTraces)
       }
     }
+    
   }
+  
   return(data.frame(filteredTraces))
+  
 }
 
 ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
@@ -1690,13 +1711,13 @@ ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origi
 }
 
 
-find_curvature <- function(xargs, yargs, split_point = 0.5){
+find_curvature <- function(xargs, yargs, split_point = 0.1){
   
   x_args <- rev(xargs[!is.na(xargs)])
   y_args <- rev(yargs[!is.na(yargs)])
   
   
-  chordlength <- ceiling(length(x_args)/2)
+  chordlength <- ceiling(length(x_args)*split_point)
   distances <- list()
   
   for (point in 1:(length(x_args) - chordlength)){
@@ -1704,11 +1725,11 @@ find_curvature <- function(xargs, yargs, split_point = 0.5){
     x_2 = x_args[point + chordlength]
     y_1 = y_args[point]
     y_2 = y_args[point + chordlength]
-    x_middle = (x_1 + x_2)/2
-    y_middle = (y_1 + y_2)/2
+    x_middle = (x_1 + x_2)*split_point
+    y_middle = (y_1 + y_2)*split_point
     
-    curve_x = x_args[point + chordlength/2]
-    curve_y = y_args[point + chordlength/2]
+    curve_x = x_args[point + chordlength*split_point]
+    curve_y = y_args[point + chordlength *split_point]
     
     distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
     distances <- append(distances, distance)
@@ -1716,18 +1737,18 @@ find_curvature <- function(xargs, yargs, split_point = 0.5){
   distances <- unlist(distances)
   
   split_index <- which(distances == max(distances))
-  x_split_less = x_args[1:(split_index + chordlength/2)]
-  x_split_more = x_args[(split_index + chordlength/2 + 1):length(x_args)]
+  x_split_less = x_args[1:(split_index + chordlength*split_point)]
+  x_split_more = x_args[(split_index + chordlength*split_point + 1):length(x_args)]
   
-  y_split_less = y_args[1:(split_index + chordlength/2)]
-  y_split_more = y_args[(split_index + chordlength/2 + 1):length(y_args)]
+  y_split_less = y_args[1:(split_index + chordlength*split_point)]
+  y_split_more = y_args[(split_index + chordlength*split_point + 1):length(y_args)]
   
   lm_front <- coef(lm(y_split_less ~ x_split_less))
   lm_back <- coef(lm(y_split_more ~ x_split_more))
   # print(x_args)
-  center_x_split <- x_args[split_index + chordlength/2]
-  center_y_split <- y_args[split_index + chordlength/2]
-  index_center <- split_index + chordlength/2
+  center_x_split <- x_args[split_index + chordlength*split_point]
+  center_y_split <- y_args[split_index + chordlength*split_point]
+  index_center <- split_index + chordlength*split_point
   
   
   x_min <- x_args[1]
@@ -1736,17 +1757,17 @@ find_curvature <- function(xargs, yargs, split_point = 0.5){
   y_max <- y_args[length(y_args)]
   #double check x_indexes
   #can improve this to return "percentages" along the line
-  return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max, y_min, y_max))
+  return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center*split_point], y_args[index_center*split_point], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max, y_min, y_max))
   
 }
 
-x_y_curvature <- function(xargs, yargs, split_point = 0.5){
+x_y_curvature <- function(xargs, yargs, split_point = 0.1){
   
   x_args <- rev(xargs[!is.na(xargs)])
   y_args <- rev(yargs[!is.na(yargs)])
   
   
-  chordlength <- ceiling(length(x_args)/2)
+  chordlength <- ceiling(length(x_args) * split_point)
   distances <- list()
   
   for (point in 1:(length(x_args) - chordlength)){
@@ -1754,11 +1775,11 @@ x_y_curvature <- function(xargs, yargs, split_point = 0.5){
     x_2 = x_args[point + chordlength]
     y_1 = y_args[point]
     y_2 = y_args[point + chordlength]
-    x_middle = (x_1 + x_2)/2
-    y_middle = (y_1 + y_2)/2
+    x_middle = (x_1 + x_2)*split_point
+    y_middle = (y_1 + y_2)*split_point
     
-    curve_x = x_args[point + chordlength/2]
-    curve_y = y_args[point + chordlength/2]
+    curve_x = x_args[point + chordlength * split_point]
+    curve_y = y_args[point + chordlength * split_point]
     
     distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
     distances <- append(distances, distance)
@@ -1766,13 +1787,13 @@ x_y_curvature <- function(xargs, yargs, split_point = 0.5){
   distances <- unlist(distances)
   
   split_index <- which(distances == max(distances))
-  center_x_split <- x_args[split_index + chordlength/2]
-  center_y_split <- y_args[split_index + chordlength/2]
+  center_x_split <- x_args[split_index + chordlength * split_point]
+  center_y_split <- y_args[split_index + chordlength * split_point]
   
   return(c(center_x_split, center_y_split))
 }
 
-plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), mergeCategories = c(FALSE), origin.algorithm = "BottomMiddle", origin.x = NA,
+plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categoriesAll = list(c(NA)), layersAll = c(NA), seg_filter = list(c(NA)), mergeCategories = c(FALSE), origin.algorithm = "BottomMiddle", origin.x = NA,
                        scaling.factor = 800/600, 
                        interval = 1, mean.lines = TRUE, points.display = FALSE,
                        palette = c(), bands.lines = FALSE, bands.fill = TRUE, legend.position = "topleft",
@@ -1781,12 +1802,12 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), parallelRays = FALSE,
                        quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5, percentage_front = c(),
-                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE){
+                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0){
   
   if (typeof(polarTraces) == "character"){
-    rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories)
+    rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories, seg_filter)
     rawTraces <- rawTraces %>% select(-tiers_list, -layer) 
-    polarTraces <- makeTracesPolar(rawTraces, origin.algorithm, origin.x, scaling.factor)
+    polarTraces <- makeTracesPolar(rawTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
   }
   
   rayIncrement = 3.14159/180 * interval
