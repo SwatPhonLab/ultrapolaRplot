@@ -2027,9 +2027,11 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
     
   }
   
+  seg_text = rle(filteredTraces$seg_text)$values
+  seg_text = seg_text[seq(1, length(seg_text), by = 2)]
   intersections_grouped <- data.frame(values, categories)
+  print(data.frame(values, categories, seg_text))
   intersections_grouped = na.omit(intersections_grouped)
-  print(intersections_grouped)
   #print(intersections_grouped)
   pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
   
