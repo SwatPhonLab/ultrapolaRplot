@@ -1117,8 +1117,6 @@ determine_h_number_intersected <- function(matrixIntersection, uniqueSegments, h
           break
         }
       }
-      print("RAYL")
-      print(ray_l)
       if (segment == 1){#first pass
         ray_l_final = ray_l
       }
@@ -1141,8 +1139,6 @@ determine_h_number_intersected <- function(matrixIntersection, uniqueSegments, h
         break
       }
     }
-    print("RAYM")
-    print(ray_m)
     if (segment == 1){#first pass
         ray_m_final = ray_m
     }
@@ -1162,76 +1158,9 @@ determine_h_number_intersected <- function(matrixIntersection, uniqueSegments, h
 }
 ```
 
-
-
 ```{r}
-#POST PROCESSING
-plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
-                            rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(),
-                            bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", 
-                            standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
-                            plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
-                            bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
-                            maskCategories = c(), rays = list(), parallelRays =
-                              FALSE,
-                            quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5,
-                            percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey",
-                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE){
-  
-  plotbounds <- identifyPlotBounds(polarTraces)
-  standardDeviation <- list()
-  averagedRX <- list()
-  averagedRY <- list()
-  #assert each ray x_coor = 0, y_coor = 0, angle = 1.57, col_r = c()
-  
-  h_rays = determine_h_number_intersected(matrixIntersection, uniqueSegments, h)
-  ray_l_final = h_rays[[1]]
-  print(ray_l_final)
-  ray_m_final = h_rays[[2]]
-  print(ray_m_final)
-  
-  
-  #first segment, doesn't matter
-  hx_coor_l = cos(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
-  hy_coor_l = sin(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
-  
-  hx_coor_m = cos(rayIncrement*ray_m_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_m_final]]
-  hy_coor_m = sin(rayIncrement*ray_m_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_m_final]]
-  
-  
-  for (segment in 1:length(uniqueSegments)){
-    averagedRX[[uniqueSegments[[segment]]]] <- list()
-    averagedRY[[uniqueSegments[[segment]]]] <- list()
-    
-    standardDeviation[[uniqueSegments[[segment]]]] <- list()
-    
-    for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
-      if (!is.na(colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]])){ 
-        #as long as there is a mean for each column, store the value
-        averagedRX[[segment]] <- append(averagedRX[[segment]], cos(rayIncrement*ray) * colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]] )
-        averagedRY[[segment]] <- append(averagedRY[[segment]], sin(rayIncrement*ray) * colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]] )
-        standardDeviation[[segment]] <- append(standardDeviation[[segment]], sd(matrixIntersection[[segment]][all(), ray], na.rm = TRUE))
-      } 
-      else{
-        averagedRX[[segment]] <- append(averagedRX[[segment]], NA)
-        averagedRY[[segment]] <- append(averagedRY[[segment]], NA)
-        standardDeviation[[segment]] <- append(standardDeviation[[segment]], NA)
-      }
-    }
-    averagedRX[[segment]] <- unlist(averagedRX[[segment]])
-    averagedRY[[segment]] <- unlist(averagedRY[[segment]])
-    standardDeviation[[segment]] <- unlist(standardDeviation[[segment]])
-  }
-  
-  #calculating slopes, making sure it matches up
-  slopes_segments = list()
-  for (segment in 1:length(uniqueSegments)){
-    segment_slope <- find_curvature(averagedRX[[uniqueSegments[[segment]]]], averagedRY[[uniqueSegments[[segment]]]])
-    slopes_segments[[uniqueSegments[[segment]]]] <- segment_slope
-  }
-  if (bubble){
-    ########### Clusters ###################
-    curvature_points_x = list()
+elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
+  curvature_points_x = list()
     curvature_points_y = list()
     for (segment in 1:length(uniqueSegments)){
       curvature_points_x[[uniqueSegments[[segment]]]] <- list()
@@ -1317,10 +1246,77 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     }
     
     print(bubble_comp)
+}
+```
+
+
+
+```{r}
+#POST PROCESSING
+plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
+                            rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(),
+                            bands.fill = TRUE, bands.lines = FALSE, legend.position = "topleft", 
+                            standard.deviation.styles = "l", pdf.filename = c(), png.filename = c(), 
+                            plot.ticks = FALSE, plot.labels = FALSE, legend.size = 3, transparency = 0.37,
+                            bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
+                            maskCategories = c(), rays = list(), parallelRays =
+                              FALSE,
+                            quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5,
+                            percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey",
+                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE){
+  
+  plotbounds <- identifyPlotBounds(polarTraces)
+  standardDeviation <- list()
+  averagedRX <- list()
+  averagedRY <- list()
+  #assert each ray x_coor = 0, y_coor = 0, angle = 1.57, col_r = c()
+  
+  h_rays = determine_h_number_intersected(matrixIntersection, uniqueSegments, h)
+  ray_l_final = h_rays[[1]]
+  print(ray_l_final)
+  ray_m_final = h_rays[[2]]
+  print(ray_m_final)
+  
+  
+  #first segment, doesn't matter
+  hx_coor_l = cos(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
+  hy_coor_l = sin(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
+  
+  hx_coor_m = cos(rayIncrement*ray_m_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_m_final]]
+  hy_coor_m = sin(rayIncrement*ray_m_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_m_final]]
+  
+  
+  for (segment in 1:length(uniqueSegments)){
+    averagedRX[[uniqueSegments[[segment]]]] <- list()
+    averagedRY[[uniqueSegments[[segment]]]] <- list()
     
+    standardDeviation[[uniqueSegments[[segment]]]] <- list()
     
-    ########### Clusters ###################
+    for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
+      if (!is.na(colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]])){ 
+        #as long as there is a mean for each column, store the value
+        averagedRX[[segment]] <- append(averagedRX[[segment]], cos(rayIncrement*ray) * colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]] )
+        averagedRY[[segment]] <- append(averagedRY[[segment]], sin(rayIncrement*ray) * colMeans(matrixIntersection[[segment]], na.rm = TRUE)[[ray]] )
+        standardDeviation[[segment]] <- append(standardDeviation[[segment]], sd(matrixIntersection[[segment]][all(), ray], na.rm = TRUE))
+      } 
+      else{
+        averagedRX[[segment]] <- append(averagedRX[[segment]], NA)
+        averagedRY[[segment]] <- append(averagedRY[[segment]], NA)
+        standardDeviation[[segment]] <- append(standardDeviation[[segment]], NA)
+      }
+    }
+    averagedRX[[segment]] <- unlist(averagedRX[[segment]])
+    averagedRY[[segment]] <- unlist(averagedRY[[segment]])
+    standardDeviation[[segment]] <- unlist(standardDeviation[[segment]])
   }
+  
+  #calculating slopes, making sure it matches up
+  slopes_segments = list()
+  for (segment in 1:length(uniqueSegments)){
+    segment_slope <- find_curvature(averagedRX[[uniqueSegments[[segment]]]], averagedRY[[uniqueSegments[[segment]]]])
+    slopes_segments[[uniqueSegments[[segment]]]] <- segment_slope
+  }
+
   #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
@@ -1688,6 +1684,9 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     }
   }
   
+  if (bubble){
+    elbow_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
+  }
     
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
     dev.off()
@@ -1881,7 +1880,7 @@ Grey = '#939799'
 Grey1 = '#555555'
 LightPurple = '#CBC3E3'
 
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list(c('u'), c('a')),  maskCategories = c("u", "ɑ"), palette = c(DarkRed, DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", legend.linewidth=0.5, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.1, percentage_front = c(0.9))
+filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list(c('u'), c('a')),  maskCategories = c("u", "ɑ"), palette = c(DarkRed, DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", legend.linewidth=0.5, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.1, percentage_front = c(0.9), bubble = TRUE, pdf.filename = "bubbletest.pdf")
 
 #add 
 #put into pdf
