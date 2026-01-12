@@ -1277,14 +1277,12 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   ray_m_final = h_rays[[2]]
   print(ray_m_final)
   
-  
   #first segment, doesn't matter
   hx_coor_l = cos(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
   hy_coor_l = sin(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
   
   hx_coor_m = cos(rayIncrement*ray_m_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_m_final]]
   hy_coor_m = sin(rayIncrement*ray_m_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_m_final]]
-  
   
   for (segment in 1:length(uniqueSegments)){
     averagedRX[[uniqueSegments[[segment]]]] <- list()
@@ -1320,7 +1318,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
-  # print(averaged_everything)
   
   #we now have the standard deviation
   xSDHigh <- list()
@@ -1374,8 +1371,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   oldpar <- par(no.readonly = TRUE)
   on.exit(par(oldpar))
   par(mar = c(0, 4.4, 0, 1.25) + 2)
-  
-  
   
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1, family = "DejaVu Serif", cex.axis = 20)
   
@@ -1479,8 +1474,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     }
   }
   
-  #not averaged everything, depending on h = 0 min, h = 1 at least 1 point, h = 2, standard deviation so 2nd min from each segment
-  #change starting point
   #c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/2], y_args[index_center/2], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max)
   
   #centered intersection point
@@ -1488,7 +1481,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   y_int <- averaged_everything[[1]]*x_int + averaged_everything[[3]]
   
   #GRAPHING H
-  
   start_xl = hx_coor_l
   y_xl = hy_coor_l #add in respective x coor
   b2 <- y_xl - perp_l * start_xl
@@ -1537,13 +1529,8 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       perp_l = tan(adjusted_angle)
       
       y_target_l = on_y_l + perp_l*(x_max - on_x_l)
-      # print("angle perpedicular valuee")
-      # print((atan(perp_l) + pi))
       
       up_l = ray_up(rawTraces, x_coor = x_max, y_coor = y_target_l, angle = adjusted_angle, origin.algorithm = origin.algorithm)
-      # print("maximum x is")
-      # print(max(df[,12]))
-      # print(y_target_l)
       x_1l = x_max + cos((atan(perp_l) + pi)) * up_l
       y_1l = y_target_l + sin((atan(perp_l) + pi)) * up_l
       front_x_l = append(front_x_l, x_1l)
@@ -1552,13 +1539,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       front_y_org = append(front_y_org, y_target_l)
       points(x_1l,  y_1l, col = ray_color, pch = 19)
       
-     
-      
-      # print("ADJUSTED ANGLEEE")
-      # print(adjusted_angle)
-      # print(tan(adjusted_angle))
-      # print(y_1l)
-      # print(y_1l + (tan(adjusted_angle))*(x_1l - averaged_everything[[11]]))
       end_coordinate = averaged_everything[[11]]
       if (tan(adjusted_angle) > 0){
         if (!sign_switch){
@@ -1566,7 +1546,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
         }
       }
       segments(x_1l,  y_1l, end_coordinate,  y_1l - ((tan(adjusted_angle))*(x_1l - end_coordinate)), col = ray_color, lwd = 2, lty = 2)
-      # print(pairwise_comparison(rawTraces, x_coor = x_1l, y_coor = y_1l, angle = atan(perp_l + pi), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
     }
   }
   
@@ -1610,10 +1589,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       back_y_org = append(back_y_org, y_target_m)
       points(x_1m, y_1m, col = ray_color, pch = 19)
       
-
-      # print("POS")
-      # print(adjusted_angle)
-      # print(tan(adjusted_angle))
       end_coordinate = averaged_everything[[12]]
       
       if (length(angle_pos)!=0){
@@ -1625,8 +1600,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       }
       
       segments(x_1m, y_1m, end_coordinate, y_1m + (tan(adjusted_angle))*(end_coordinate - x_1m), col = ray_color, lwd = 2, lty = 2)
-      # print(pairwise_comparison(rawTraces, x_coor = x_1m, y_coor = y_1m, angle = atan(perp_m), mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-  
     }
   }
 
@@ -1634,10 +1607,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   # points(on_x_m, on_y_m, col = "red", pch = 19)
   #points(x_int, y_target_l, col = "red", pch = 19)
   #points(x_int, y_target_m, col = "red", pch = 19)
-  
-  #   #add in parameter
-  #   # points(averaged_everything[[7]], averaged_everything[[8]], col = "purple", pch = 19, cex = 1.5)
-  #   # points(averaged_everything[[9]], averaged_everything[[10]], col = "purple", pch = 19, cex = 1.5)
   
   if (quartile_points){
     for (segment in 1:length(uniqueSegments)){
@@ -1880,7 +1849,7 @@ Grey = '#939799'
 Grey1 = '#555555'
 LightPurple = '#CBC3E3'
 
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list(c('u'), c('a')),  maskCategories = c("u", "ɑ"), palette = c(DarkRed, DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", legend.linewidth=0.5, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.1, percentage_front = c(0.9), bubble = TRUE, pdf.filename = "bubbletest.pdf")
+filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list(c('u'), c('a')),  maskCategories = c("u", "ɑ"), palette = c(DarkRed, DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", legend.linewidth=0.5, parallelRays = TRUE, perpendicularRays = TRUE, h = 0, percentage =  0.1, percentage_front = c(0.93), bubble = TRUE)
 
 #add 
 #put into pdf
