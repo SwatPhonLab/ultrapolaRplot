@@ -1263,7 +1263,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                               FALSE,
                             quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5,
                             percentage_front = c(), percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey",
-                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE){
+                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1635,9 +1635,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print(neg_adjusted_angle[[p]])
       points(front_x_l[[p]], front_y_l[[p]], col = "red")
       print(percentage_front[[p]])
-      print("x,y_l")
-      print(front_x_l[[p]])
-      print(front_x_org[[p]])
       print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
       print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
@@ -1646,7 +1643,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   if (length(percentage_back)!=0){
     for (p in 1:length(percentage_back)){
       print("PAIRWISE COMPARISON POSITIVE ANGLE")
-      print(pos_adjusted_angle[[p]])
+      #print(pos_adjusted_angle[[p]])
       print(percentage_back[[p]])
       
       print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
@@ -1655,6 +1652,10 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   if (bubble){
     elbow_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
+  }
+  
+  if (difference_plot){
+    differencePlot(rawTraces)
   }
     
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
@@ -1789,7 +1790,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), parallelRays = FALSE,
                        quartile_points = FALSE, perpendicularRays = FALSE, h = 1, percentage = 0.5, percentage_front = c(),
-                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0){
+                       percentage_back = c(), angle_neg = c(), angle_pos = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories, seg_filter)
@@ -1815,7 +1816,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                   maskCategories = maskCategories, rays = rays, parallelRays = parallelRays, quartile_points =
                     quartile_points, perpendicularRays = perpendicularRays, h = h, percentage = percentage, 
                   percentage_front = percentage_front, percentage_back = percentage_back, angle_neg = angle_neg, angle_pos = angle_pos,
-                  ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble)
+                  ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot)
   #return(rx)
   return(rawTraces)
 }
@@ -1849,7 +1850,7 @@ Grey = '#939799'
 Grey1 = '#555555'
 LightPurple = '#CBC3E3'
 
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list(c('u'), c('a')),  maskCategories = c("u", "ɑ"), palette = c(DarkRed, DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", legend.linewidth=0.5, parallelRays = TRUE, perpendicularRays = TRUE, h = 0, percentage =  0.1, percentage_front = c(0.93), bubble = TRUE)
+filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list(c('u'), c('a')),  maskCategories = c("u", "ɑ"), palette = c(DarkRed, DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", legend.linewidth=0.5, parallelRays = TRUE, perpendicularRays = TRUE, h = 0, percentage =  0.1, percentage_front = c(0.93), bubble = TRUE, difference_plot = TRUE)
 
 #add 
 #put into pdf
