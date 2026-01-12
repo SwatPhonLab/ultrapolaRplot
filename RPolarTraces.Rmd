@@ -1098,6 +1098,73 @@ rays[[1]][[3]]
 ```
 
 ```{r}
+determine_h_number_intersected <- function(matrixIntersection, uniqueSegments, h){
+  #h>=2
+  #min
+  num_rays = length(matrixIntersection[[1]][1, all()])
+  ray_l_final = num_rays
+  ray_m_final = 0
+  
+  h_comp = h
+  if (h ==0){
+    h = 1
+  }
+  
+  for (segment in 1:length(uniqueSegments)){
+      for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
+        if (sum(!is.na(matrixIntersection[[segment]][, num_rays-ray])) >= h){ 
+          ray_l = (num_rays - ray)
+          break
+        }
+      }
+      print("RAYL")
+      print(ray_l)
+      if (segment == 1){#first pass
+        ray_l_final = ray_l
+      }
+      if (h_comp == 0){
+        if (ray_l > ray_l_final){
+          ray_l_final = ray_l
+        }
+      } else {
+        if (ray_l < ray_l_final){
+          ray_l_final = ray_l
+        }
+      }
+      
+  }
+  
+  for (segment in 1:length(uniqueSegments)){
+    for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
+      if (sum(!is.na(matrixIntersection[[segment]][, ray])) >= h){ 
+        ray_m = ray
+        break
+      }
+    }
+    print("RAYM")
+    print(ray_m)
+    if (segment == 1){#first pass
+        ray_m_final = ray_m
+    }
+    if (h_comp == 0){
+      if (ray_m < ray_m_final){
+          ray_m_final = ray_m
+      }
+    }else{
+      if (ray_m > ray_m_final){
+          ray_m_final = ray_m
+      }
+    }
+  }
+  
+  
+  return(c(ray_l_final, ray_m_final))
+}
+```
+
+
+
+```{r}
 #POST PROCESSING
 plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEachCurveNNj, uniqueSegments, palette = c(),
                             rayIncrement, points.display = FALSE, mean.lines = TRUE, means.styles = c(),
@@ -1117,37 +1184,11 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   averagedRY <- list()
   #assert each ray x_coor = 0, y_coor = 0, angle = 1.57, col_r = c()
   
-  #h>=2
-  #min
-  num_rays = length(matrixIntersection[[1]][1, all()])
-  ray_l_final = num_rays
-  ray_m_final = 0
-  for (segment in 1:length(uniqueSegments)){
-      breakBool = TRUE
-      inner = FALSE
-      for (ray in 1:length(matrixIntersection[[segment]][1, all()])){
-        if (breakBool && sum(!is.na(matrixIntersection[[segment]][, num_rays-ray])) >= h){ 
-          breakBool = FALSE
-          ray_l = (num_rays - ray)
-        }
-        if (sum(!is.na(matrixIntersection[[segment]][, ray])) >= h){ 
-          if (!inner){
-            ray_m = ray
-          }
-          inner = TRUE
-          if (!breakBool){
-            break
-          }
-        }
-        
-      }
-      if (ray_l < ray_l_final){
-        ray_l_final = ray_l
-      }
-      if (ray_m > ray_m_final){
-        ray_m_final = ray_m
-      }
-  }
+  h_rays = determine_h_number_intersected(matrixIntersection, uniqueSegments, h)
+  ray_l_final = h_rays[[1]]
+  print(ray_l_final)
+  ray_m_final = h_rays[[2]]
+  print(ray_m_final)
   
   
   #first segment, doesn't matter
@@ -1450,37 +1491,20 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   x_int <- (averaged_everything[[4]] - averaged_everything[[3]]) / (averaged_everything[[1]] - averaged_everything[[2]])
   y_int <- averaged_everything[[1]]*x_int + averaged_everything[[3]]
   
-  #farthest point
-  if (h == 0){
-    start_xl = min(df[, 11])
-    y_xl = df[which.min(df[, 11]), 13]
-    b2 <- y_xl - perp_l * start_xl
+  #GRAPHING H
+  
+  start_xl = hx_coor_l
+  y_xl = hy_coor_l #add in respective x coor
+  b2 <- y_xl - perp_l * start_xl
 
-    x_adjusted_l <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
-    y_adjusted_l <- averaged_everything[[1]] * x_adjusted_l +  averaged_everything[[3]]
-    
-    end_xm = max(df[, 12])
-    y_xm = df[which.max(df[, 12]), 14]
-    b2 <- y_xm - perp_m * end_xm
-    x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
-    y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
-    
-  }else {
-    start_xl = hx_coor_l
-    y_xl = hy_coor_l #add in respective x coor
-    b2 <- y_xl - perp_l * start_xl
-  
-    x_adjusted_l <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
-    # print("adjustedl")
-    # print(x_adjusted_l)
-    y_adjusted_l <- averaged_everything[[1]] * x_adjusted_l +  averaged_everything[[3]]
-  
-    end_xm = hx_coor_m
-    y_xm = hy_coor_m
-    b2 <- y_xm - perp_m * end_xm
-    x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
-    y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
-  }
+  x_adjusted_l <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
+  y_adjusted_l <- averaged_everything[[1]] * x_adjusted_l +  averaged_everything[[3]]
+
+  end_xm = hx_coor_m
+  y_xm = hy_coor_m
+  b2 <- y_xm - perp_m * end_xm
+  x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
+  y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
 
   if (parallelRays){
     segments(x_adjusted_l, y_adjusted_l, x_int, y_int, col = "black", lwd = 2, lty = 2)
@@ -1831,9 +1855,9 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
 
 ```{r}
 #rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
-#rawTracesT <- loadAllTracesMidPoint("~/Documents/plinguistics/ultrasound-data-TurkicVowels-processed/P06/");
+rawTracesT <- loadAllTracesMidPoint("~/Documents/plinguistics/ultrasound-data-TurkicVowels-processed/P06/");
 #rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
-rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")
+#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")
 rawTraces
 ```
 ```{r}
@@ -1857,7 +1881,7 @@ Grey = '#939799'
 Grey1 = '#555555'
 LightPurple = '#CBC3E3'
 
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list(c('u'), c('a')),  maskCategories = c("u", "ɑ"), palette = c(DarkRed, DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", legend.linewidth=0.5, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.1, percentage_front = c(0.9), points.display = TRUE)
+filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list(c('u'), c('a')),  maskCategories = c("u", "ɑ"), palette = c(DarkRed, DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", legend.linewidth=0.5, parallelRays = TRUE, perpendicularRays = TRUE, h = 2, percentage =  0.1, percentage_front = c(0.9))
 
 #add 
 #put into pdf
@@ -1892,7 +1916,7 @@ filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll =
 # #maskCategories = c("i/iː", "y/yː", "u", "ɯ/ɯː", "ɛ", "œ", "ɑ", "ɔ"),
 # palette = c(LightBlue, LightBlue, Pink, Pink, DarkBlue, DarkBlue, DarkRed, LightRed),
 # means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=1,
-# parallelRays = TRUE, perpendicularRays = TRUE, h = 2, ray_color="grey")
+# parallelRays = TRUE, perpendicularRays = TRUE, h = 0, ray_color="grey")
 
 #split at elbow
 #parallel = bestFitRays.split
