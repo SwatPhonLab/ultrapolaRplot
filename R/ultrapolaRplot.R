@@ -1004,8 +1004,8 @@ find_intersection_with_ray_difference_plot <- function(formatedData, dataOfEachC
     } #end individual trace for loop 
     
   } #end segment for loop
-  print("matrix intsection RIGHT BEFORE ")
-  print(matrixIntersection)
+  #print("matrix intsection RIGHT BEFORE ")
+  #print(matrixIntersection)
   return(matrixIntersection) # columns for rays
 }
 
@@ -1066,6 +1066,90 @@ determine_h_number_intersected <- function(matrixIntersection, uniqueSegments, b
   
   
   return(c(ray_l_final, ray_m_final))
+}
+
+best_fit_lines_traces  <- function(matrixIntersection, uniqueSegments, rayIncrement){
+  av_segment_data <- data.frame(
+    av_neg_slopes = numeric(),
+    av_pos_slopes = numeric(),
+    av_neg_intercepts = numeric(),
+    av_pos_intercepts = numeric()
+  )
+  
+  for (segment in 1:length(uniqueSegments)){
+    segment_trace_data <- data.frame(
+      neg_slopes = numeric(),
+      pos_slopes = numeric(),
+      neg_intercepts = numeric(),
+      pos_intercepts = numeric()
+    )
+    
+    seg_name <- uniqueSegments[[segment]]
+    for (trace in 1:nrow(matrixIntersection[[seg_name]])){
+      trace_rx <- c()
+      trace_ry <- c()
+      for (ray in 1:ncol(matrixIntersection[[seg_name]])){
+        if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
+          trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+          trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+        } else {
+          trace_rx <- append(trace_rx, NA)
+          trace_ry <- append(trace_ry, NA)
+        }
+      }
+      data_curvature <- find_curvature(trace_rx, trace_ry)
+      segment_trace_data = rbind(segment_trace_data, (data_curvature[1:4]))
+    }
+    av_segment_data = rbind(av_segment_data, colMeans(segment_trace_data, na.rm = TRUE))
+  }
+  
+  return(colMeans(av_segment_data, na.rm = TRUE))
+}
+
+angle_plot  <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
+  angle_c <- list()
+  #uniqueSegments = c("u")
+  #palette = c("black")
+  for (segment in 1:length(uniqueSegments)){
+    angle_c_seg <- list()
+    seg_name <- uniqueSegments[[segment]]
+    for (trace in 1:nrow(matrixIntersection[[seg_name]])){
+      trace_rx <- c()
+      trace_ry <- c()
+      for (ray in 1:ncol(matrixIntersection[[seg_name]])){
+        if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
+          trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+          trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+        } else {
+          trace_rx <- append(trace_rx, NA)
+          trace_ry <- append(trace_ry, NA)
+        }
+      }
+      angle_c_seg <- append(angle_c_seg, angleC(trace_rx, trace_ry))
+    }
+    angle_c[[uniqueSegments[[segment]]]] <- unlist(angle_c_seg)
+  }
+  print(angle_c)
+  angle_plot_data <- data.frame()
+  
+  for(segment in 1:length(uniqueSegments)) {
+    temp_df <- data.frame(
+      segment_x = uniqueSegments[[segment]],
+      angle = angle_c[[segment]]
+    )
+    angle_plot_data <- rbind(angle_plot_data, temp_df)
+  }
+  
+  # Violin angles vs. segment
+  color_mapping = setNames(unlist(palette), uniqueSegments)
+  angle_violin <- ggboxplot(angle_plot_data, x = "segment_x", y = "angle", fill = "segment_x", color = "segment_x", alpha = 0.37,
+                            add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
+    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = palette)),
+           color = "none"        # hide color legend (redundant)
+    ) + labs(x = "Segment", y = "Angle between slopes", title = "Distribution of Angle by Segment") + scale_color_manual(values = color_mapping) +
+    scale_fill_manual(values = color_mapping) 
+  
+  print(angle_violin)
 }
 
 elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
@@ -1167,7 +1251,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                               FALSE,
                             bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, percentage = 0.5,
                             bestFitRays.intersection_rays.negative = c(), bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey",
-                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE){
+                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE, angle_between_best_fit = FALSE){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1222,6 +1306,13 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
+  print("before")
+  print(averaged_everything[1:4])
+  
+  averaged_everything[1:4] = best_fit_lines_traces(matrixIntersection, uniqueSegments, rayIncrement) #updating to individual traces
+  print("after")
+  print(averaged_everything[1:4])
+  
   
   #we now have the standard deviation
   xSDHigh <- list()
@@ -1537,10 +1628,10 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (p in 1:length(bestFitRays.intersection_rays.negative)){
       print("PAIRWISE COMPARISON NEGATIVE ANGLE")
       print(neg_adjusted_angle[[p]])
-      points(front_x_l[[p]], front_y_l[[p]], col = "red")
+      #points(front_x_l[[p]], front_y_l[[p]], col = "red")
       print(bestFitRays.intersection_rays.negative[[p]])
       print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      #print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
   
@@ -1549,14 +1640,18 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print("PAIRWISE COMPARISON POSITIVE ANGLE")
       #print(pos_adjusted_angle[[p]])
       print(bestFitRays.intersection_rays.positive[[p]])
-      points(back_x_m[[p]], back_y_m[[p]], col = "red")
+      #points(back_x_m[[p]], back_y_m[[p]], col = "red")
       print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      #print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
   
   if (bubble){
     elbow_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
+  }
+  
+  if (angle_between_best_fit){
+    angle_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
   }
   
   if (difference_plot){
@@ -1712,8 +1807,8 @@ ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origi
   
   values <- as.vector(unlist(differences2))
   
-  #return(min(values, na.rm = TRUE) - 0.015) 
-  return(min(values, na.rm = TRUE) - 0.2) 
+  return(min(values, na.rm = TRUE) - 0.015) 
+  #return(min(values, na.rm = TRUE) - 0.2) 
 }
 
 

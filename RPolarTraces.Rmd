@@ -1015,8 +1015,8 @@ find_intersection_with_ray_difference_plot <- function(formatedData, dataOfEachC
    } #end individual trace for loop 
     
   } #end segment for loop
-  print("matrix intsection RIGHT BEFORE ")
-  print(matrixIntersection)
+  #print("matrix intsection RIGHT BEFORE ")
+  #print(matrixIntersection)
   return(matrixIntersection) # columns for rays
 } 
 ```
@@ -1239,6 +1239,95 @@ elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette
 }
 ```
 
+```{r}
+best_fit_lines_traces  <- function(matrixIntersection, uniqueSegments, rayIncrement){
+    av_segment_data <- data.frame(
+      av_neg_slopes = numeric(),
+      av_pos_slopes = numeric(),
+      av_neg_intercepts = numeric(),
+      av_pos_intercepts = numeric()
+    )
+  
+  for (segment in 1:length(uniqueSegments)){
+    segment_trace_data <- data.frame(
+      neg_slopes = numeric(),
+      pos_slopes = numeric(),
+      neg_intercepts = numeric(),
+      pos_intercepts = numeric()
+    )
+    
+    seg_name <- uniqueSegments[[segment]]
+    for (trace in 1:nrow(matrixIntersection[[seg_name]])){
+      trace_rx <- c()
+      trace_ry <- c()
+      for (ray in 1:ncol(matrixIntersection[[seg_name]])){
+        if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
+          trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+          trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+        } else {
+          trace_rx <- append(trace_rx, NA)
+          trace_ry <- append(trace_ry, NA)
+        }
+      }
+      data_curvature <- find_curvature(trace_rx, trace_ry)
+      segment_trace_data = rbind(segment_trace_data, (data_curvature[1:4]))
+    }
+    av_segment_data = rbind(av_segment_data, colMeans(segment_trace_data, na.rm = TRUE))
+  }
+  
+  return(colMeans(av_segment_data, na.rm = TRUE))
+}
+```
+
+
+```{r}
+angle_plot  <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
+  angle_c <- list()
+  #uniqueSegments = c("u")
+  #palette = c("black")
+  for (segment in 1:length(uniqueSegments)){
+    angle_c_seg <- list()
+    seg_name <- uniqueSegments[[segment]]
+    for (trace in 1:nrow(matrixIntersection[[seg_name]])){
+      trace_rx <- c()
+      trace_ry <- c()
+      for (ray in 1:ncol(matrixIntersection[[seg_name]])){
+        if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
+          trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+          trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+        } else {
+          trace_rx <- append(trace_rx, NA)
+          trace_ry <- append(trace_ry, NA)
+        }
+      }
+      angle_c_seg <- append(angle_c_seg, angleC(trace_rx, trace_ry))
+    }
+    angle_c[[uniqueSegments[[segment]]]] <- unlist(angle_c_seg)
+  }
+  print(angle_c)
+  angle_plot_data <- data.frame()
+  
+  for(segment in 1:length(uniqueSegments)) {
+    temp_df <- data.frame(
+      segment_x = uniqueSegments[[segment]],
+      angle = angle_c[[segment]]
+    )
+    angle_plot_data <- rbind(angle_plot_data, temp_df)
+  }
+  
+  # Violin angles vs. segment
+  color_mapping = setNames(unlist(palette), uniqueSegments)
+  angle_violin <- ggboxplot(angle_plot_data, x = "segment_x", y = "angle", fill = "segment_x", color = "segment_x", alpha = 0.37,
+         add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
+    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = palette)),
+    color = "none"        # hide color legend (redundant)
+  ) + labs(x = "Segment", y = "Angle between slopes", title = "Distribution of Angle by Segment") + scale_color_manual(values = color_mapping) +
+    scale_fill_manual(values = color_mapping) 
+  
+  print(angle_violin)
+}
+```
+
 
 
 ```{r}
@@ -1253,7 +1342,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                               FALSE,
                             bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, percentage = 0.5,
                             bestFitRays.intersection_rays.negative = c(), bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey",
-                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE){
+                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE, angle_between_best_fit = FALSE){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1304,10 +1393,17 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     segment_slope <- find_curvature(averagedRX[[uniqueSegments[[segment]]]], averagedRY[[uniqueSegments[[segment]]]])
     slopes_segments[[uniqueSegments[[segment]]]] <- segment_slope
   }
-
+  
   #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
+  print("before")
+  print(averaged_everything[1:4])
+  
+  averaged_everything[1:4] = best_fit_lines_traces(matrixIntersection, uniqueSegments, rayIncrement) #updating to individual traces
+  print("after")
+  print(averaged_everything[1:4])
+  
   
   #we now have the standard deviation
   xSDHigh <- list()
@@ -1623,10 +1719,10 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (p in 1:length(bestFitRays.intersection_rays.negative)){
       print("PAIRWISE COMPARISON NEGATIVE ANGLE")
       print(neg_adjusted_angle[[p]])
-      points(front_x_l[[p]], front_y_l[[p]], col = "red")
+      #points(front_x_l[[p]], front_y_l[[p]], col = "red")
       print(bestFitRays.intersection_rays.negative[[p]])
       print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      #print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
    
@@ -1635,14 +1731,18 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print("PAIRWISE COMPARISON POSITIVE ANGLE")
       #print(pos_adjusted_angle[[p]])
       print(bestFitRays.intersection_rays.positive[[p]])
-      points(back_x_m[[p]], back_y_m[[p]], col = "red")
+      #points(back_x_m[[p]], back_y_m[[p]], col = "red")
       print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      #print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
   
   if (bubble){
     elbow_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
+  }
+  
+  if (angle_between_best_fit){
+    angle_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
   }
   
   if (difference_plot){
@@ -1781,7 +1881,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), bestFitRays = FALSE,
                        bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, percentage = 0.5, bestFitRays.intersection_rays.negative = c(),
-                       bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE){
+                       bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE, angle_between_best_fit = FALSE){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories, seg_filter)
@@ -1807,7 +1907,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                   maskCategories = maskCategories, rays = rays, bestFitRays = bestFitRays, bestFitRays.show_elbows =
                     bestFitRays.show_elbows, perpendicularRays = perpendicularRays, bestFitRays.start_point_density = bestFitRays.start_point_density, percentage = percentage, 
                   bestFitRays.intersection_rays.negative = bestFitRays.intersection_rays.negative, bestFitRays.intersection_rays.positive = bestFitRays.intersection_rays.positive, angle_neg_rotate = angle_neg_rotate, angle_pos_rotate = angle_pos_rotate,
-                  ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot)
+                  ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot, angle_between_best_fit = angle_between_best_fit)
   #return(rx)
   return(rawTraces)
 }
@@ -1852,7 +1952,17 @@ LightPurple = '#CBC3E3'
 
 # filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list( c('ɛ'), c('ɔ')),  maskCategories = c("e", "ɔ"), palette = c(Pink, DarkRed), means.styles = c(1,2), legend.size=1.3, legend.position="topleft", bestFitRays.show_elbows = TRUE, perpendicularRays = TRUE, bubble = TRUE)
 
-filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"), categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('u'), c('ɯ', 'ɯː'), c('ɛ'), c('œ'), c('a'), c('ɔ')),  maskCategories = c("i/iː", "y/yː", "u", "ɯ/ɯː", "ɛ", "œ", "ɑ", "ɔ"), palette = c(LightBlue, "blue", "black", Pink, DarkBlue, "cyan", DarkRed, LightRed), means.styles = c(1,2,1,2,1,2,1,2), legend.size=1.3, legend.position="topleft", bestFitRays.show_elbows = TRUE, perpendicularRays = TRUE, bestFitRays.intersection_rays.positive = c(0.31), bestFitRays.start_point_density = 2, bestFitRays = TRUE)
+filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"),
+categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('ɛ'), c('œ'), c('ɯ', 'ɯː'), c('u'), c('a'), c('ɔ')),
+maskCategories = c("i/iː", "y/yː", "ɛ", "œ", "ɯ/ɯː", "u", "ɑ", "ɔ"),
+palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, Pink, Pink, DarkRed, LightRed),
+means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=2,
+bestFitRays.intersection_rays.negative = c(0.45), bestFitRays.intersection_rays.positive = c(0.35, 0.85),
+bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey", bubble = TRUE)
+
+# filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow"), categoriesAll = list( c('u'), c('a'), c('ɔ')), palette = c(LightBlue, "black", DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=.013, legend.position="topleft", bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 2, bestFitRays = FALSE, bubble = FALSE, angle_between_best_fit = TRUE, mean.lines = FALSE)
+
+# filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list( c('u'), c('ɯ', 'ɯː')), palette = c("blue", "black"), legend.size=1.3, legend.position="topleft", bestFitRays.show_elbows = TRUE, perpendicularRays = TRUE, bestFitRays.intersection_rays.positive = c(0.31), bestFitRays.start_point_density = 2, bestFitRays = TRUE, bubble = TRUE, angle_between_best_fit = TRUE, points.display = TRUE)
 
 # print(unique(filteredTraces$seg_text))
 # filteredTraces
@@ -1877,13 +1987,84 @@ filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll =
 # means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=1,
 # bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 0, ray_color="grey")
 
-#split at elbow
 #parallel = bestFitRays.split
 #bestFitRays.start_points_density
 #bestFitRays.intersections_negative
 #bestFitRays.intersections_
 ```
 Plus minus like 5% on each side. Remove 10 data points. 
+
+```{r}
+angleC <- function(xargs, yargs, split_point = 0.1){
+  
+  x_args <- rev(xargs[!is.na(xargs)])
+  y_args <- rev(yargs[!is.na(yargs)])
+
+  
+  chordlength <- ceiling(length(x_args)*split_point)
+  distances <- list()
+  
+  for (point in 1:(length(x_args) - chordlength)){
+    x_1 = x_args[point]
+    x_2 = x_args[point + chordlength]
+    y_1 = y_args[point]
+    y_2 = y_args[point + chordlength]
+    x_middle = (x_1 + x_2)*split_point
+    y_middle = (y_1 + y_2)*split_point
+    
+    curve_x = x_args[point + chordlength*split_point]
+    curve_y = y_args[point + chordlength *split_point]
+    
+    distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
+    distances <- append(distances, distance)
+  }
+  distances <- unlist(distances)
+  
+  split_index <- which(distances == max(distances))
+  x_split_less = x_args[1:(split_index + chordlength*split_point)]
+  x_split_more = x_args[(split_index + chordlength*split_point + 1):length(x_args)]
+  
+  y_split_less = y_args[1:(split_index + chordlength*split_point)]
+  y_split_more = y_args[(split_index + chordlength*split_point + 1):length(y_args)]
+  
+  center_x_split <- x_args[split_index + chordlength*split_point]
+  center_y_split <- y_args[split_index + chordlength*split_point]
+  
+  lm_front <- coef(lm(y_split_less ~ x_split_less))
+  lm_back <- coef(lm(y_split_more ~ x_split_more))
+  
+  pos_slope = lm_front[2]
+  neg_slope = lm_back[2]
+  if (pos_slope < 0){
+    #print("POSTIVE SLOPE ERROR")
+    return(c(NA))
+  }
+  if(neg_slope > 0){
+    #print("NEGATIVE SLOPE ERROR")
+    return(c(NA))
+  }
+  adjustment = 0
+  if (atan(neg_slope)< 0){
+    adjustment = adjustment + pi
+  } 
+  if (atan(pos_slope)< 0){
+    adjustment = adjustment + pi
+  } 
+  # print("neg slope")
+  # print(neg_slope)
+  # print("neg angle")
+  # print(atan(neg_slope))
+  # print("pos slope")
+  # print(pos_slope)
+  # print("pos angle")
+  # print(atan(pos_slope))
+  #atan gives negative angle version
+  
+  angle_between_slopes = ((atan(neg_slope)) + adjustment - atan(pos_slope)) * 180/pi 
+  return(angle_between_slopes[[1]])
+}
+```
+
 
 ```{r}
 find_curvature <- function(xargs, yargs, split_point = 0.1){
@@ -2170,8 +2351,8 @@ ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origi
   
   values <- as.vector(unlist(differences2))
  
-  #return(min(values, na.rm = TRUE) - 0.015) 
-  return(min(values, na.rm = TRUE) - 0.2) 
+  return(min(values, na.rm = TRUE) - 0.015) 
+  #return(min(values, na.rm = TRUE) - 0.2) 
 }
 ```
 
