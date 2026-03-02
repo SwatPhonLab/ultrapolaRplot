@@ -1952,13 +1952,22 @@ LightPurple = '#CBC3E3'
 
 # filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"), categoriesAll = list( c('ɛ'), c('ɔ')),  maskCategories = c("e", "ɔ"), palette = c(Pink, DarkRed), means.styles = c(1,2), legend.size=1.3, legend.position="topleft", bestFitRays.show_elbows = TRUE, perpendicularRays = TRUE, bubble = TRUE)
 
+# filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"),
+# categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('ɛ'), c('œ'), c('ɯ', 'ɯː'), c('u'), c('a'), c('ɔ')),
+# maskCategories = c("i/iː", "y/yː", "ɛ", "œ", "ɯ/ɯː", "u", "ɑ", "ɔ"),
+# palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, Pink, Pink, DarkRed, LightRed),
+# means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=2,
+# bestFitRays.intersection_rays.negative = c(0.45), bestFitRays.intersection_rays.positive = c(0.35, 0.85),
+# bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey", bubble = TRUE, bestFitRays.show_elbows = TRUE)
+
 filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"),
 categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('ɛ'), c('œ'), c('ɯ', 'ɯː'), c('u'), c('a'), c('ɔ')),
 maskCategories = c("i/iː", "y/yː", "ɛ", "œ", "ɯ/ɯː", "u", "ɑ", "ɔ"),
 palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, Pink, Pink, DarkRed, LightRed),
 means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=2,
 bestFitRays.intersection_rays.negative = c(0.45), bestFitRays.intersection_rays.positive = c(0.35, 0.85),
-bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey", bubble = TRUE)
+bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey", pdf.filename = "Vowels-plus-palate-V2-rays.pdf")
+
 
 # filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow"), categoriesAll = list( c('u'), c('a'), c('ɔ')), palette = c(LightBlue, "black", DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=.013, legend.position="topleft", bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 2, bestFitRays = FALSE, bubble = FALSE, angle_between_best_fit = TRUE, mean.lines = FALSE)
 
@@ -2424,7 +2433,7 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #Turkey HSD differences in means should not be 0
   anova_fit <- lm(distances ~ segments)
   posthoc <- TukeyHSD(aov(anova_fit))
-  plot(posthoc, cex.axis = .6)
+  plot(posthoc, cex.axis = .4)
   #summary(anova_fit) model to see which vowels significant in predicting category -- not rlly wanted? 
   #anova_model <- lm(values ~ categories, data = intersections_grouped)
   #turkey_results <- TurkeyHSD(anova_results)

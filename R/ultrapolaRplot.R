@@ -1106,6 +1106,75 @@ best_fit_lines_traces  <- function(matrixIntersection, uniqueSegments, rayIncrem
   return(colMeans(av_segment_data, na.rm = TRUE))
 }
 
+angleC <- function(xargs, yargs, split_point = 0.1){
+  
+  x_args <- rev(xargs[!is.na(xargs)])
+  y_args <- rev(yargs[!is.na(yargs)])
+  
+  
+  chordlength <- ceiling(length(x_args)*split_point)
+  distances <- list()
+  
+  for (point in 1:(length(x_args) - chordlength)){
+    x_1 = x_args[point]
+    x_2 = x_args[point + chordlength]
+    y_1 = y_args[point]
+    y_2 = y_args[point + chordlength]
+    x_middle = (x_1 + x_2)*split_point
+    y_middle = (y_1 + y_2)*split_point
+    
+    curve_x = x_args[point + chordlength*split_point]
+    curve_y = y_args[point + chordlength *split_point]
+    
+    distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
+    distances <- append(distances, distance)
+  }
+  distances <- unlist(distances)
+  
+  split_index <- which(distances == max(distances))
+  x_split_less = x_args[1:(split_index + chordlength*split_point)]
+  x_split_more = x_args[(split_index + chordlength*split_point + 1):length(x_args)]
+  
+  y_split_less = y_args[1:(split_index + chordlength*split_point)]
+  y_split_more = y_args[(split_index + chordlength*split_point + 1):length(y_args)]
+  
+  center_x_split <- x_args[split_index + chordlength*split_point]
+  center_y_split <- y_args[split_index + chordlength*split_point]
+  
+  lm_front <- coef(lm(y_split_less ~ x_split_less))
+  lm_back <- coef(lm(y_split_more ~ x_split_more))
+  
+  pos_slope = lm_front[2]
+  neg_slope = lm_back[2]
+  if (pos_slope < 0){
+    #print("POSTIVE SLOPE ERROR")
+    return(c(NA))
+  }
+  if(neg_slope > 0){
+    #print("NEGATIVE SLOPE ERROR")
+    return(c(NA))
+  }
+  adjustment = 0
+  if (atan(neg_slope)< 0){
+    adjustment = adjustment + pi
+  } 
+  if (atan(pos_slope)< 0){
+    adjustment = adjustment + pi
+  } 
+  # print("neg slope")
+  # print(neg_slope)
+  # print("neg angle")
+  # print(atan(neg_slope))
+  # print("pos slope")
+  # print(pos_slope)
+  # print("pos angle")
+  # print(atan(pos_slope))
+  #atan gives negative angle version
+  
+  angle_between_slopes = ((atan(neg_slope)) + adjustment - atan(pos_slope)) * 180/pi 
+  return(angle_between_slopes[[1]])
+}
+
 angle_plot  <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
   angle_c <- list()
   #uniqueSegments = c("u")
@@ -1903,7 +1972,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), bestFitRays = FALSE,
                        bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, percentage = 0.5, bestFitRays.intersection_rays.negative = c(),
-                       bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE){
+                       bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE, angle_between_best_fit = FALSE){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories, seg_filter)
@@ -1929,7 +1998,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         maskCategories = maskCategories, rays = rays, bestFitRays = bestFitRays, bestFitRays.show_elbows =
                           bestFitRays.show_elbows, perpendicularRays = perpendicularRays, bestFitRays.start_point_density = bestFitRays.start_point_density, percentage = percentage, 
                         bestFitRays.intersection_rays.negative = bestFitRays.intersection_rays.negative, bestFitRays.intersection_rays.positive = bestFitRays.intersection_rays.positive, angle_neg_rotate = angle_neg_rotate, angle_pos_rotate = angle_pos_rotate,
-                        ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot)
+                        ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot, angle_between_best_fit = angle_between_best_fit)
   #return(rx)
   return(rawTraces)
 }
@@ -2146,7 +2215,7 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #Turkey HSD differences in means should not be 0
   anova_fit <- lm(distances ~ segments)
   posthoc <- TukeyHSD(aov(anova_fit))
-  plot(posthoc, cex.axis = .6)
+  plot(posthoc, cex.axis = .4)
   #summary(anova_fit) model to see which vowels significant in predicting category -- not rlly wanted? 
   #anova_model <- lm(values ~ categories, data = intersections_grouped)
   #turkey_results <- TurkeyHSD(anova_results)
