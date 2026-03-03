@@ -1106,120 +1106,120 @@ best_fit_lines_traces  <- function(matrixIntersection, uniqueSegments, rayIncrem
   return(colMeans(av_segment_data, na.rm = TRUE))
 }
 
-angleC <- function(xargs, yargs, split_point = 0.1){
-  
-  x_args <- rev(xargs[!is.na(xargs)])
-  y_args <- rev(yargs[!is.na(yargs)])
-  
-  
-  chordlength <- ceiling(length(x_args)*split_point)
-  distances <- list()
-  
-  for (point in 1:(length(x_args) - chordlength)){
-    x_1 = x_args[point]
-    x_2 = x_args[point + chordlength]
-    y_1 = y_args[point]
-    y_2 = y_args[point + chordlength]
-    x_middle = (x_1 + x_2)*split_point
-    y_middle = (y_1 + y_2)*split_point
-    
-    curve_x = x_args[point + chordlength*split_point]
-    curve_y = y_args[point + chordlength *split_point]
-    
-    distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
-    distances <- append(distances, distance)
-  }
-  distances <- unlist(distances)
-  
-  split_index <- which(distances == max(distances))
-  x_split_less = x_args[1:(split_index + chordlength*split_point)]
-  x_split_more = x_args[(split_index + chordlength*split_point + 1):length(x_args)]
-  
-  y_split_less = y_args[1:(split_index + chordlength*split_point)]
-  y_split_more = y_args[(split_index + chordlength*split_point + 1):length(y_args)]
-  
-  center_x_split <- x_args[split_index + chordlength*split_point]
-  center_y_split <- y_args[split_index + chordlength*split_point]
-  
-  lm_front <- coef(lm(y_split_less ~ x_split_less))
-  lm_back <- coef(lm(y_split_more ~ x_split_more))
-  
-  pos_slope = lm_front[2]
-  neg_slope = lm_back[2]
-  if (pos_slope < 0){
-    #print("POSTIVE SLOPE ERROR")
-    return(c(NA))
-  }
-  if(neg_slope > 0){
-    #print("NEGATIVE SLOPE ERROR")
-    return(c(NA))
-  }
-  adjustment = 0
-  if (atan(neg_slope)< 0){
-    adjustment = adjustment + pi
-  } 
-  if (atan(pos_slope)< 0){
-    adjustment = adjustment + pi
-  } 
-  # print("neg slope")
-  # print(neg_slope)
-  # print("neg angle")
-  # print(atan(neg_slope))
-  # print("pos slope")
-  # print(pos_slope)
-  # print("pos angle")
-  # print(atan(pos_slope))
-  #atan gives negative angle version
-  
-  angle_between_slopes = ((atan(neg_slope)) + adjustment - atan(pos_slope)) * 180/pi 
-  return(angle_between_slopes[[1]])
-}
-
-angle_plot  <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
-  angle_c <- list()
-  #uniqueSegments = c("u")
-  #palette = c("black")
-  for (segment in 1:length(uniqueSegments)){
-    angle_c_seg <- list()
-    seg_name <- uniqueSegments[[segment]]
-    for (trace in 1:nrow(matrixIntersection[[seg_name]])){
-      trace_rx <- c()
-      trace_ry <- c()
-      for (ray in 1:ncol(matrixIntersection[[seg_name]])){
-        if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
-          trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
-          trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
-        } else {
-          trace_rx <- append(trace_rx, NA)
-          trace_ry <- append(trace_ry, NA)
-        }
-      }
-      angle_c_seg <- append(angle_c_seg, angleC(trace_rx, trace_ry))
-    }
-    angle_c[[uniqueSegments[[segment]]]] <- unlist(angle_c_seg)
-  }
-  print(angle_c)
-  angle_plot_data <- data.frame()
-  
-  for(segment in 1:length(uniqueSegments)) {
-    temp_df <- data.frame(
-      segment_x = uniqueSegments[[segment]],
-      angle = angle_c[[segment]]
-    )
-    angle_plot_data <- rbind(angle_plot_data, temp_df)
-  }
-  
-  # Violin angles vs. segment
-  color_mapping = setNames(unlist(palette), uniqueSegments)
-  angle_violin <- ggboxplot(angle_plot_data, x = "segment_x", y = "angle", fill = "segment_x", color = "segment_x", alpha = 0.37,
-                            add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
-    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = palette)),
-           color = "none"        # hide color legend (redundant)
-    ) + labs(x = "Segment", y = "Angle between slopes", title = "Distribution of Angle by Segment") + scale_color_manual(values = color_mapping) +
-    scale_fill_manual(values = color_mapping) 
-  
-  print(angle_violin)
-}
+# angleC <- function(xargs, yargs, split_point = 0.1){
+#   
+#   x_args <- rev(xargs[!is.na(xargs)])
+#   y_args <- rev(yargs[!is.na(yargs)])
+#   
+#   
+#   chordlength <- ceiling(length(x_args)*split_point)
+#   distances <- list()
+#   
+#   for (point in 1:(length(x_args) - chordlength)){
+#     x_1 = x_args[point]
+#     x_2 = x_args[point + chordlength]
+#     y_1 = y_args[point]
+#     y_2 = y_args[point + chordlength]
+#     x_middle = (x_1 + x_2)*split_point
+#     y_middle = (y_1 + y_2)*split_point
+#     
+#     curve_x = x_args[point + chordlength*split_point]
+#     curve_y = y_args[point + chordlength *split_point]
+#     
+#     distance <- ((curve_x - x_middle)^2 + (curve_y - y_middle)^2)^(1/2)
+#     distances <- append(distances, distance)
+#   }
+#   distances <- unlist(distances)
+#   
+#   split_index <- which(distances == max(distances))
+#   x_split_less = x_args[1:(split_index + chordlength*split_point)]
+#   x_split_more = x_args[(split_index + chordlength*split_point + 1):length(x_args)]
+#   
+#   y_split_less = y_args[1:(split_index + chordlength*split_point)]
+#   y_split_more = y_args[(split_index + chordlength*split_point + 1):length(y_args)]
+#   
+#   center_x_split <- x_args[split_index + chordlength*split_point]
+#   center_y_split <- y_args[split_index + chordlength*split_point]
+#   
+#   lm_front <- coef(lm(y_split_less ~ x_split_less))
+#   lm_back <- coef(lm(y_split_more ~ x_split_more))
+#   
+#   pos_slope = lm_front[2]
+#   neg_slope = lm_back[2]
+#   if (pos_slope < 0){
+#     #print("POSTIVE SLOPE ERROR")
+#     return(c(NA))
+#   }
+#   if(neg_slope > 0){
+#     #print("NEGATIVE SLOPE ERROR")
+#     return(c(NA))
+#   }
+#   adjustment = 0
+#   if (atan(neg_slope)< 0){
+#     adjustment = adjustment + pi
+#   } 
+#   if (atan(pos_slope)< 0){
+#     adjustment = adjustment + pi
+#   } 
+#   # print("neg slope")
+#   # print(neg_slope)
+#   # print("neg angle")
+#   # print(atan(neg_slope))
+#   # print("pos slope")
+#   # print(pos_slope)
+#   # print("pos angle")
+#   # print(atan(pos_slope))
+#   #atan gives negative angle version
+#   
+#   angle_between_slopes = ((atan(neg_slope)) + adjustment - atan(pos_slope)) * 180/pi 
+#   return(angle_between_slopes[[1]])
+# }
+# 
+# angle_plot  <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
+#   angle_c <- list()
+#   #uniqueSegments = c("u")
+#   #palette = c("black")
+#   for (segment in 1:length(uniqueSegments)){
+#     angle_c_seg <- list()
+#     seg_name <- uniqueSegments[[segment]]
+#     for (trace in 1:nrow(matrixIntersection[[seg_name]])){
+#       trace_rx <- c()
+#       trace_ry <- c()
+#       for (ray in 1:ncol(matrixIntersection[[seg_name]])){
+#         if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
+#           trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+#           trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+#         } else {
+#           trace_rx <- append(trace_rx, NA)
+#           trace_ry <- append(trace_ry, NA)
+#         }
+#       }
+#       angle_c_seg <- append(angle_c_seg, angleC(trace_rx, trace_ry))
+#     }
+#     angle_c[[uniqueSegments[[segment]]]] <- unlist(angle_c_seg)
+#   }
+#   print(angle_c)
+#   angle_plot_data <- data.frame()
+#   
+#   for(segment in 1:length(uniqueSegments)) {
+#     temp_df <- data.frame(
+#       segment_x = uniqueSegments[[segment]],
+#       angle = angle_c[[segment]]
+#     )
+#     angle_plot_data <- rbind(angle_plot_data, temp_df)
+#   }
+#   
+#   # Violin angles vs. segment
+#   color_mapping = setNames(unlist(palette), uniqueSegments)
+#   angle_violin <- ggboxplot(angle_plot_data, x = "segment_x", y = "angle", fill = "segment_x", color = "segment_x", alpha = 0.37,
+#                             add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
+#     guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = palette)),
+#            color = "none"        # hide color legend (redundant)
+#     ) + labs(x = "Segment", y = "Angle between slopes", title = "Distribution of Angle by Segment") + scale_color_manual(values = color_mapping) +
+#     scale_fill_manual(values = color_mapping) 
+#   
+#   print(angle_violin)
+# }
 
 elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
   curvature_points_x = list()
@@ -1330,9 +1330,9 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   h_rays = determine_h_number_intersected(matrixIntersection, uniqueSegments, bestFitRays.start_point_density)
   ray_l_final = h_rays[[1]]
-  print(ray_l_final)
+  #print(ray_l_final)
   ray_m_final = h_rays[[2]]
-  print(ray_m_final)
+  #print(ray_m_final)
   
   #first segment, doesn't matter
   hx_coor_l = cos(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
@@ -1375,12 +1375,12 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
-  print("before")
-  print(averaged_everything[1:4])
+  # print("before")
+  # print(averaged_everything[1:4])
   
   averaged_everything[1:4] = best_fit_lines_traces(matrixIntersection, uniqueSegments, rayIncrement) #updating to individual traces
-  print("after")
-  print(averaged_everything[1:4])
+  # print("after")
+  # print(averaged_everything[1:4])
   
   
   #we now have the standard deviation
@@ -1696,7 +1696,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   if (length(bestFitRays.intersection_rays.negative)!=0){
     for (p in 1:length(bestFitRays.intersection_rays.negative)){
       print("PAIRWISE COMPARISON NEGATIVE ANGLE")
-      print(neg_adjusted_angle[[p]])
+      #print(neg_adjusted_angle[[p]])
       #points(front_x_l[[p]], front_y_l[[p]], col = "red")
       print(bestFitRays.intersection_rays.negative[[p]])
       print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
@@ -2202,9 +2202,10 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   seg_text = rle(filteredTraces$seg_text)$values
   seg_text = seg_text[seq(1, length(seg_text), by = 2)]
   intersections_grouped <- data.frame(values, categories)
-  print(data.frame(values, categories, seg_text), n = 150)
+  #print(data.frame(values, categories, seg_text), n = 150)
+  #print(data.frame(values, categories), n = 150)
   intersections_grouped = na.omit(intersections_grouped)
-  #print(intersections_grouped)
+  print(intersections_grouped)
   pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
   
   
