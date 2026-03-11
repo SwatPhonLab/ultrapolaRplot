@@ -1918,6 +1918,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
 #rawTracesT <- loadAllTracesMidPoint("~/Documents/plinguistics/ultrasound-data-TurkicVowels-processed/P06/");
 #rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
 rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")
+rawTraces
 ```
 ```{r}
 
@@ -1966,7 +1967,9 @@ maskCategories = c("i/iː", "y/yː", "ɛ", "œ", "ɯ/ɯː", "u", "ɑ", "ɔ"),
 palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, Pink, Pink, DarkRed, LightRed),
 means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=2,
 bestFitRays.intersection_rays.negative = c(0.45), bestFitRays.intersection_rays.positive = c(0.35, 0.85),
-bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey", pdf.filename = "Vowels-plus-palate-V2-rays.pdf")
+bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey", bubble = TRUE, pdf.filename = "testfont.pdf")
+
+filteredTraces
 
 
 # filteredTraces <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow"), categoriesAll = list( c('u'), c('a'), c('ɔ')), palette = c(LightBlue, "black", DarkBlue), means.styles = c(1,2,1,2,1,2,1,2), legend.size=.013, legend.position="topleft", bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 2, bestFitRays = FALSE, bubble = FALSE, angle_between_best_fit = TRUE, mean.lines = FALSE)
@@ -2467,10 +2470,10 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
 
   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
          add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
-    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC)),
+    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC), size = 20),
     color = "none"        # hide color legend (redundant)
   )+
-    theme(axis.text.x = element_text(size = 20), axis.text.y = element_text(size = 20))+
+    theme(axis.text.x = element_text(size = 20), axis.text.y = element_text(size = 20), legend.text = element_text(size = 20))+
   stat_pvalue_manual(
     comparisons_plot,
     label = "p.adj.signif"

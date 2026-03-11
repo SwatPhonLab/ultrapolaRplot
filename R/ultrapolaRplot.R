@@ -2203,9 +2203,8 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   seg_text = seg_text[seq(1, length(seg_text), by = 2)]
   intersections_grouped <- data.frame(values, categories)
   #print(data.frame(values, categories, seg_text), n = 150)
-  #print(data.frame(values, categories), n = 150)
   intersections_grouped = na.omit(intersections_grouped)
-  print(intersections_grouped)
+  #print(intersections_grouped)
   pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
   
   
@@ -2250,10 +2249,10 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   
   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
                      add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
-    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC)),
+    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC), size = 20),
            color = "none"        # hide color legend (redundant)
     )+
-    theme(axis.text.x = element_text(size = 20), axis.text.y = element_text(size = 20))+
+    theme(axis.text.x = element_text(size = 20), axis.text.y = element_text(size = 20), legend.text = element_text(size = 20))+
     stat_pvalue_manual(
       comparisons_plot,
       label = "p.adj.signif"
