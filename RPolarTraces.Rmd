@@ -831,46 +831,6 @@ calculateIntersection2 <- function(radiusPrevious, radiusNext, anglePrevious, an
 ```
 
 ```{r}
-# calculateIntersection3 <- function(xP, yP, radiusPrevious, anglePrevious, angleRay, xN, yN, radiusNext, angleNext, x_coor = 0, y_coor = 0){
-# 
-#   #print("radius Next")
-#   #print(radiusNext)
-#   
-#   distance_between_points = ((xN - xP)^2 + (yN - yP)^2)^0.5
-#   #print("distancce between points")
-#   #print(distance_between_points)
-#   big_angle = (angleNext - anglePrevious) 
-#   #print("big angle")
-#   #print(big_angle)
-#   small_angle = (angleRay - anglePrevious)
-#   #print("small angle")
-#   #print(small_angle)
-#   
-#   origin_x = x_coor
-#   #print("original x")
-#   #print(origin_x)
-#   origin_y = y_coor
-#   #print("original y")
-#   #print(origin_y)
-#   
-#   #print("B")
-#   #print(radiusNext*sin(big_angle)/distance_between_points)
-#   #angleB = asin(radiusNext*sin(big_angle)/distance_between_points)
-#   val <- radiusNext * sin(big_angle) / distance_between_points
-#   val <- max(-1, min(1, val))
-#   angleB <- asin(val)
-#   #print(angleB)
-#   #print("b")
-#   angleb = pi - angleB - small_angle
-#   #print(angleb)
-#   
-#   #print("intersection")
-#   intersection = sin(angleB)* radiusPrevious/sin(angleb)
-#   #print(intersection)
-#   
-#   return (intersection)
-# }
-
 calculateIntersection3 <- function(
   xP, yP, radiusPrevious, anglePrevious, angleRay,
   xN, yN, radiusNext, angleNext,
@@ -911,22 +871,6 @@ calculateIntersection3 <- function(
   #xP, yP, xN, yN, x_coor, y_coor, angleRay
   if (t < 0) {
     print("negative t value??")
-    print(denom)
-    print(t)
-    print(radiusPrevious)
-    print(anglePrevious)
-    print(radiusNext)
-    print(angleNext)
-    
-    print(xP)
-    print(yP)
-    print(xN)
-    print(yN)
-    print(ox)
-    print(oy)
-    print(angleRay)
-    print(anglePrevious)
-    print(angleNext)
   }
   if (u < 0 || u > 1) {
     print("doesn't lie on segment")
@@ -1092,21 +1036,7 @@ find_intersection_with_ray_difference_plot <- function(formatedData, dataOfEachC
 
     for (segment in 1:length(uniqueSegments)){ #and for each segment
     
-     for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment (alphabetical??)
-        #want to limit search, cut out half that does not correspond to direction of angle
-        # n_cols <- length(formatedData[[segment]][[individualTrace]][1,all()])
-        # print(n_cols)
-        # if (angleRay >= pi/2){
-        #   formatedData <- formatedData[[segment]][[individualTrace]][all(), 1:floor(n_cols/2)]
-        # }
-        # if (angleRay < pi/2){
-        #   #angle 0 is at very end of array
-        #   formatedData <- formatedData[[segment]][[individualTrace]][all(), (floor(n_cols/2)):n_cols]
-        # }
-       
-       # if (individualTrace == 3 && segment == 1){
-       #   print(formatedData[[segment]][[individualTrace]]) 
-       # }
+     for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment 
        
        if (length(formatedData[[segment]][[individualTrace]][1, all()])-1 > 1){
            for (individualPoint in 1:(length(formatedData[[segment]][[individualTrace]][1, all()])-1)){ #for each point on the trace, find intersection
@@ -2129,9 +2059,10 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
 ```
 
 ```{r}
-rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
+#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
 #rawTracesT <- loadAllTracesMidPoint("~/Documents/plinguistics/ultrasound-data-TurkicVowels-processed/P06/");
-#rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
+rawTracesQ <- loadAllTracesMidPoint("~/Documents/plinguistics/Qumuq/ultrasound-data-QumuqKGQ-190929");
+#rawTracesTartar <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
 #rawTracesD <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")  
 ```
 ```{r}
@@ -2183,7 +2114,7 @@ LightPurple = '#CBC3E3'
 # bestFitRays.intersection_rays.negative = c(0.45), bestFitRays.intersection_rays.positive = c(0.35, 0.85),
 # bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey")
 
-blah <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2"), categoriesAll = list(c('lʲ.#_V.F', 'lʲ.V_#.F', 'lʲ.V_V.FF', 'lʲ.#_V.B', 'lʲ.V_#.B', 'lʲ.V_V.BB'), c('nʲ.#_V.B', 'nʲ.V_#.B', 'nʲ.V_V.BB', 'nʲ.#_V.F', 'nʲ.V_#.F', 'nʲ.V_V.FF'),  c('mʲ.#_V.F', 'mʲ.V_#.F', 'mʲ.V_V.FF', 'mʲ.#_V.B', 'mʲ.V_#.B', 'mʲ.V_V.BB'), c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_V.FF', 'zʲ.V_#.B'), c('kʲ.#_V.F', 'gʲ.#_V.F', 'gʲ.V_V.FF'), c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), maskCategories = c("lʲ", "nʲ", "mʲ", "Sʲ", "Kʲ", "ɫ", "nˠ", "mˠ", "Sˠ", "Kˠ"), palette = c(LightBlue, LightGreen, LightRed, LightPurple, Grey, DarkBlue, DarkGreen, DarkRed, DarkPurple, Black), means.styles = c(1,2,3,4,5,1,2,3,4,5), bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 0, bestFitRays.intersection_rays.negative = c(0.35, 0.8), bestFitRays.intersection_rays.positive = c(0.175, 0.55), legend.size=1.5, angle_pos = c(-20, 0), points.display = FALSE)#, pdf.filename = "palatals-non-palatals_comparison2.pdf")
+# blah <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2"), categoriesAll = list(c('lʲ.#_V.F', 'lʲ.V_#.F', 'lʲ.V_V.FF', 'lʲ.#_V.B', 'lʲ.V_#.B', 'lʲ.V_V.BB'), c('nʲ.#_V.B', 'nʲ.V_#.B', 'nʲ.V_V.BB', 'nʲ.#_V.F', 'nʲ.V_#.F', 'nʲ.V_V.FF'),  c('mʲ.#_V.F', 'mʲ.V_#.F', 'mʲ.V_V.FF', 'mʲ.#_V.B', 'mʲ.V_#.B', 'mʲ.V_V.BB'), c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_V.FF', 'zʲ.V_#.B'), c('kʲ.#_V.F', 'gʲ.#_V.F', 'gʲ.V_V.FF'), c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), maskCategories = c("lʲ", "nʲ", "mʲ", "Sʲ", "Kʲ", "ɫ", "nˠ", "mˠ", "Sˠ", "Kˠ"), palette = c(LightBlue, LightGreen, LightRed, LightPurple, Grey, DarkBlue, DarkGreen, DarkRed, DarkPurple, Black), means.styles = c(1,2,3,4,5,1,2,3,4,5), bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 0, bestFitRays.intersection_rays.negative = c(0.35, 0.8), bestFitRays.intersection_rays.positive = c(0.175, 0.55), legend.size=1.5, angle_pos = c(-20, 0), points.display = FALSE)#, pdf.filename = "palatals-non-palatals_comparison2.pdf")
 
 # x <- plotTraces(rawTracesTartar, mergeCategories = c(TRUE),
 # tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments"),
@@ -2195,10 +2126,28 @@ blah <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("cons2"
 # palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, LightGreen, LightRed, DarkRed, DarkRed),
 # #means.styles = c(1,1,2,2,3,3,4,4),
 # means.styles = c(1,2,1,2,1,2,1,2),
-# bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 1,
-# bestFitRays.intersection_rays.negative = c(0.25,0.7), bestFitRays.intersection_rays.positive = c(0.15),
+# bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 0,
+# bestFitRays.intersection_rays.negative = c(0.25,0.75), bestFitRays.intersection_rays.positive = c(0.18),
 # angle_pos_rotate = c(-20),
-# legend.size=1.5)
+# legend.size=1.5)#, pdf.filename = "tartar.pdf")
+
+plotTraces(rawTracesQ, mergeCategories = c(TRUE),
+pdf.filename = "vowels-rays-qumuq.pdf",
+#tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments", NA),
+#categoriesAll = list(c('a'), c('u'), c('o'), c('ɯ'), c('e'), c('y'), c('ø'), c('i'), NA),
+#maskCategories = c("a", "u", "o", "ɯ", "e", "y", "ø", "i", "Palate"),
+categoriesAll = list(c('i'), c('y'), c('e'), c('ø'), c('ɯ'), c('u'), c('a'), c('o')),
+#layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'),
+layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue'),
+palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, LightRed, LightRed, DarkRed, DarkRed),
+#palette = c(DarkRed, LightRed, DarkRed, LightRed, DarkBlue, LightBlue, DarkBlue, LightBlue, Black),
+#means.styles = c(1,2,2,1,1,2,2,1,1)
+means.styles = c(1,2,1,2,1,2,1,2),
+bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 1,
+bestFitRays.intersection_rays.negative = c(0.35), bestFitRays.intersection_rays.positive = c(0.25, 0.6),
+angle_pos_rotate = c(-2,20),
+legend.size=2, legend.position="bottomleft"
+)
 
 # 
 # blah <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("cons2", "cons2", "cons2", "cons2"), categoriesAll = list(c('nʲ.#_V.B', 'nʲ.V_#.B', 'nʲ.V_V.BB', 'nʲ.#_V.F', 'nʲ.V_#.F', 'nʲ.V_V.FF'),  c('mʲ.#_V.F', 'mʲ.V_#.F', 'mʲ.V_V.FF', 'mʲ.#_V.B', 'mʲ.V_#.B', 'mʲ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB')), maskCategories = c("nʲ", "mʲ","nˠ", "mˠ"), palette = c(LightGreen, LightRed, DarkGreen, DarkRed), bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 1, bestFitRays.intersection_rays.negative = c(0.35, 0.8), bestFitRays.intersection_rays.positive = c(0.175, 0.55), legend.size=1.5, angle_pos = c(-20, 0), points.display = FALSE) #pdf.filename = "palatals-non-palatals_comparison.pdf",

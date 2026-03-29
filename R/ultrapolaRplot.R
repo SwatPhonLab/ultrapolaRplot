@@ -776,6 +776,54 @@ calculateIntersection2 <- function(radiusPrevious, radiusNext, anglePrevious, an
   return ( radiusPrevious + differenceInRay/differenceInTheta * differenceInRadius  )
 }
 
+calculateIntersection3 <- function(
+    xP, yP, radiusPrevious, anglePrevious, angleRay,
+    xN, yN, radiusNext, angleNext,
+    x_coor = 0, y_coor = 0
+) {
+  
+  ox <- x_coor
+  oy <- y_coor
+  
+  dx <- cos(angleRay)
+  dy <- sin(angleRay)
+  
+  sx <- xN - xP
+  sy <- yN - yP
+  
+  # 2D cross product
+  cross2d <- function(ax, ay, bx, by) {
+    ax * by - ay * bx
+  }
+  
+  #(ox, oy) + t(dx, dy) = (xP, yP) + u(sx, sy)
+  # u in [0,1] on PN
+  
+  wx <- xP - ox
+  wy <- yP - oy
+  
+  denom <- cross2d(dx, dy, sx, sy)
+  
+  # parallel
+  # if (abs(denom) < 1e-12) {
+  #   return(NA)
+  # }
+  
+  t <- cross2d(wx, wy, sx, sy) / denom
+  u <- cross2d(wx, wy, dx, dy) / denom
+  
+  #checks
+  #xP, yP, xN, yN, x_coor, y_coor, angleRay
+  if (t < 0) {
+    print("negative t value??")
+  }
+  if (u < 0 || u > 1) {
+    print("doesn't lie on segment")
+  }
+  
+  return(t)
+}
+
 read_in_data <- function(extractedData){
   dataR <- extractedData
   
@@ -867,6 +915,9 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
         if (new_angle < 0){
           new_angle = new_angle + 2*pi
         }
+        if (old_angle < 0){
+          old_angle = old_angle + 2*pi
+        }
         anglevalues <- append(anglevalues, new_angle)
         old_anglevalues <- append(old_anglevalues, old_angle)
       }
@@ -875,6 +926,7 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
       anglevalues <- unlist(anglevalues)
       
       theOrderForSorting <- sortedOrder(unlist(old_anglevalues))
+      #theOrderForSorting <- sortedOrder(anglevalues)
       xvaluesSorted <- xvalues[theOrderForSorting]
       yvaluesSorted <- yvalues[theOrderForSorting]
       anglevalues <- anglevalues[theOrderForSorting]
@@ -897,7 +949,7 @@ formating_data <- function(dataOfEachCurveNNj, uniqueSegments, origin.x = .5, sc
   return(polarTraces)
 }
 
-find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueSegments, rayIncrement){ #ie compiledList
+find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueSegments, rayIncrement, x_coor, y_coor){ #ie compiledList
   
   matrixIntersection <- list()
   
@@ -922,14 +974,29 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
                 
                 #print("found intersection with the following ray angle")
                 
-                myIntersection <- calculateIntersection2(
+                #function(xP, yP, radiusPrevious, anglePrevious, angleRay, xN, yN, radiusNext, angleNext){
+                # myIntersection <- calculateIntersection2(
+                # 
+                #                                                      (formatedData[[segment]][[individualTrace]][4,individualPoint]),
+                #                                                       (formatedData[[segment]][[individualTrace]][4,individualPoint + 1]),
+                #                                                       (formatedData[[segment]][[individualTrace]][3,individualPoint]),
+                #                                                       angleRay,
+                #                                                       (formatedData[[segment]][[individualTrace]][3,individualPoint + 1])
+                # 
+                #                                                       )
+                myIntersection <- calculateIntersection3(
                   
-                  (formatedData[[segment]][[individualTrace]][4,individualPoint]), 
-                  (formatedData[[segment]][[individualTrace]][4,individualPoint + 1]), 
-                  (formatedData[[segment]][[individualTrace]][3,individualPoint]), 
-                  angleRay, 
-                  (formatedData[[segment]][[individualTrace]][3,individualPoint + 1]) 
-                  
+                  (formatedData[[segment]][[individualTrace]][1,individualPoint]),
+                  (formatedData[[segment]][[individualTrace]][2,individualPoint]),
+                  (formatedData[[segment]][[individualTrace]][4,individualPoint]),
+                  (formatedData[[segment]][[individualTrace]][3,individualPoint]),
+                  angleRay,
+                  (formatedData[[segment]][[individualTrace]][1,individualPoint+1]),
+                  (formatedData[[segment]][[individualTrace]][2,individualPoint+1]),
+                  (formatedData[[segment]][[individualTrace]][4,individualPoint+1]),
+                  (formatedData[[segment]][[individualTrace]][3,individualPoint+1]),
+                  x_coor,
+                  y_coor
                 )
                 
                 if (is.na(myIntersection)){
@@ -952,48 +1019,84 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
     
   } #end angle ray for loop 
   return(matrixIntersection) # columns for rays
-}
+} 
 
-find_intersection_with_ray_difference_plot <- function(formatedData, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle = 1.57){ #ie compiledList
+find_intersection_with_ray_difference_plot <- function(formatedData, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle = 1.57, x_coor, y_coor){ #ie compiledList
   
   matrixIntersection <- list()
+  angleIntersection <- list()
   
   #start set up unique segment 
   for (segment in 1:length(uniqueSegments)){
     matrixIntersection[[uniqueSegments[[segment]]]] <- matrix(NA, nrow = length(formatedData[[segment]]), ncol = 1)
+    angleIntersection[[uniqueSegments[[segment]]]] <- matrix(NA, nrow = length(formatedData[[segment]]), ncol = 7)
   }
   #end set up
   angleRay = angle
+  
+  
   for (segment in 1:length(uniqueSegments)){ #and for each segment
     
-    for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment (alphabetical??)
+    for (individualTrace in seq(length(dataOfEachCurveNNj[[segment]]))){ #for each trace in the segment 
+      
       if (length(formatedData[[segment]][[individualTrace]][1, all()])-1 > 1){
         for (individualPoint in 1:(length(formatedData[[segment]][[individualTrace]][1, all()])-1)){ #for each point on the trace, find intersection
           #find the right two points the angle falls between for each individual trace
           
-          if (angleRay <= formatedData[[segment]][[individualTrace]][3, individualPoint +1]){
-            if (angleRay >= formatedData[[segment]][[individualTrace]][3, individualPoint]){ 
-              
+          nextAngle = formatedData[[segment]][[individualTrace]][3, individualPoint +1]
+          previousAngle = formatedData[[segment]][[individualTrace]][3, individualPoint]
+          
+          if (angleRay <= nextAngle){
+            if (angleRay <= previousAngle && angleRay >= previousAngle - 2*pi){
+              #wraps around zero
+              previousAngle = previousAngle - 2*pi
+            }
+          }
+          
+          
+          if (angleRay <= nextAngle){
+            if (angleRay >= previousAngle){ 
               #print("found intersection with the following ray angle")
-              
-              myIntersection <- calculateIntersection2(
+              #might prevent unexpected cases
+              if (nextAngle >= previousAngle){
+                if (nextAngle - previousAngle < pi){
+                  
+                  myIntersection <- calculateIntersection3(
+                    
+                    (formatedData[[segment]][[individualTrace]][1,individualPoint]),
+                    (formatedData[[segment]][[individualTrace]][2,individualPoint]),
+                    (formatedData[[segment]][[individualTrace]][4,individualPoint]),
+                    previousAngle,
+                    angleRay,
+                    (formatedData[[segment]][[individualTrace]][1,individualPoint+1]),
+                    (formatedData[[segment]][[individualTrace]][2,individualPoint+1]),
+                    (formatedData[[segment]][[individualTrace]][4,individualPoint+1]),
+                    nextAngle,
+                    x_coor,
+                    y_coor
+                  )
+                  # 
+                  if (is.na(myIntersection)){
+                    print("NA FOUND:", angleRay/rayIncrement)
+                  }else{
+                    # print(uniqueSegments[[segment]])
+                    # print(myIntersection)
+                  }
+                  matrixIntersection[[uniqueSegments[[segment]]]][[individualTrace, 1]] <- myIntersection
+                  angleIntersection[[uniqueSegments[[segment]]]][individualTrace, ] <- c(individualPoint, (formatedData[[segment]][[individualTrace]][4,individualPoint]), 
+                                                                                         (formatedData[[segment]][[individualTrace]][4,individualPoint + 1]), 
+                                                                                         previousAngle, 
+                                                                                         angleRay, 
+                                                                                         nextAngle, myIntersection)
+                  break
+                  
+                }
                 
-                (formatedData[[segment]][[individualTrace]][4,individualPoint]), 
-                (formatedData[[segment]][[individualTrace]][4,individualPoint + 1]), 
-                (formatedData[[segment]][[individualTrace]][3,individualPoint]), 
-                angleRay, 
-                (formatedData[[segment]][[individualTrace]][3,individualPoint + 1]) 
-                
-              )
-              
-              if (is.na(myIntersection)){
-                print("NA FOUND:", angleRay/rayIncrement)
-              }else{
-                # print(uniqueSegments[[segment]])
-                # print(myIntersection)
               }
-              matrixIntersection[[uniqueSegments[[segment]]]][[individualTrace, 1]] <- myIntersection
-              break
+              
+              
+              
+              
             }
           }
           
@@ -1004,8 +1107,11 @@ find_intersection_with_ray_difference_plot <- function(formatedData, dataOfEachC
     } #end individual trace for loop 
     
   } #end segment for loop
-  #print("matrix intsection RIGHT BEFORE ")
-  #print(matrixIntersection)
+  # print("matrix intsection RIGHT BEFORE ")
+  # print(matrixIntersection)
+  # print("angle intersection")
+  #print("angle entry, radiusPrevious, radiusNext, anglePrevious, angleRay, angleNext, intersection")
+  #print(angleIntersection)
   return(matrixIntersection) # columns for rays
 }
 
@@ -1330,9 +1436,9 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   h_rays = determine_h_number_intersected(matrixIntersection, uniqueSegments, bestFitRays.start_point_density)
   ray_l_final = h_rays[[1]]
-  #print(ray_l_final)
+  print(ray_l_final)
   ray_m_final = h_rays[[2]]
-  #print(ray_m_final)
+  print(ray_m_final)
   
   #first segment, doesn't matter
   hx_coor_l = cos(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
@@ -1375,12 +1481,12 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   #rename to account for masking
   df <- do.call(rbind, slopes_segments)
   averaged_everything <- colMeans(df)
-  # print("before")
-  # print(averaged_everything[1:4])
+  #print("before")
+  #print(averaged_everything[1:4])
   
   averaged_everything[1:4] = best_fit_lines_traces(matrixIntersection, uniqueSegments, rayIncrement) #updating to individual traces
-  # print("after")
-  # print(averaged_everything[1:4])
+  #print("after")
+  #print(averaged_everything[1:4])
   
   
   #we now have the standard deviation
@@ -1490,7 +1596,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     
     if (points.display){
       for (trace in 1:length(polarTraces[[segment]])){
-        points(polarTraces[[segment]][[trace]][1, all()], polarTraces[[segment]][[trace]][2, all()], type = "l", col = paletteColors[[segment]], asp = 1)
+        points(polarTraces[[segment]][[trace]][1, all()], polarTraces[[segment]][[trace]][2, all()], type = "p", col = paletteColors[[segment]], asp = 1)
       }
     }
     
@@ -1558,6 +1664,22 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
   y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
   
+  if (bestFitRays.start_point_density == 0){
+    start_xl = min(df[, 11])
+    y_xl = df[which.min(df[, 11]), 13]
+    b2 <- y_xl - perp_l * start_xl
+    
+    x_adjusted_l <- (b2 - averaged_everything[[3]]) / (averaged_everything[[1]] - perp_l)
+    y_adjusted_l <- averaged_everything[[1]] * x_adjusted_l +  averaged_everything[[3]]
+    
+    end_xm = max(df[, 12])
+    y_xm = df[which.max(df[, 12]), 14]
+    b2 <- y_xm - perp_m * end_xm
+    x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
+    y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
+    
+  }
+  
   if (bestFitRays){
     segments(x_adjusted_l, y_adjusted_l, x_int, y_int, col = "black", lwd = 2, lty = 2)
     segments(x_int, y_int, x_adjusted_m, y_adjusted_m, col = "black", lwd = 2, lty = 2)
@@ -1567,7 +1689,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   front_x_org = list()
   front_y_l = list()
   front_y_org = list()
-  x_max = max(df[,12])
+  x_max = max(df[,12]) #not going to cross zero
   
   neg_adjusted_angle = c()
   perp_l_original = perp_l
@@ -1593,8 +1715,10 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       perp_l = tan(adjusted_angle)
       
       y_target_l = on_y_l + perp_l*(x_max - on_x_l)
-      
+      print("called ray_up")
       up_l = ray_up(rawTraces, x_coor = x_max, y_coor = y_target_l, angle = adjusted_angle, origin.algorithm = origin.algorithm)
+      #print("move up: -min + 0.015")
+      #print(up_l)
       x_1l = x_max + cos((atan(perp_l) + pi)) * up_l
       y_1l = y_target_l + sin((atan(perp_l) + pi)) * up_l
       front_x_l = append(front_x_l, x_1l)
@@ -1603,9 +1727,15 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       front_y_org = append(front_y_org, y_target_l)
       points(x_1l,  y_1l, col = ray_color, pch = 19)
       
-      end_coordinate = averaged_everything[[11]]
+      if (bestFitRays.start_point_density == 0){
+        end_coordinate = min(df[, 11])
+      }else{
+        end_coordinate = averaged_everything[[11]]
+      }
+      
       if (tan(adjusted_angle) > 0){
         if (!sign_switch){
+          print("SWITCHING END COOR")
           end_coordinate = averaged_everything[[12]]
         }
       }
@@ -1653,7 +1783,12 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       back_y_org = append(back_y_org, y_target_m)
       points(x_1m, y_1m, col = ray_color, pch = 19)
       
-      end_coordinate = averaged_everything[[12]]
+      
+      if (bestFitRays.start_point_density == 0){
+        end_coordinate = max(df[, 12])
+      }else{
+        end_coordinate = averaged_everything[[12]]
+      }
       
       if (length(angle_pos_rotate)!=0){
         if (tan(adjusted_angle) < 0){
@@ -1696,22 +1831,29 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   if (length(bestFitRays.intersection_rays.negative)!=0){
     for (p in 1:length(bestFitRays.intersection_rays.negative)){
       print("PAIRWISE COMPARISON NEGATIVE ANGLE")
-      #print(neg_adjusted_angle[[p]])
+      print(neg_adjusted_angle[[p]])
       #points(front_x_l[[p]], front_y_l[[p]], col = "red")
+      points(front_x_org[[p]], front_y_org[[p]], col = "red")
       print(bestFitRays.intersection_rays.negative[[p]])
+      print("called close up pairwise")
+      print(front_x_l[[p]])
       print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      #print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      #print("called far away pairwise")
+      #print(front_x_org[[p]])
+      print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
   
   if (length(bestFitRays.intersection_rays.positive)!=0){
     for (p in 1:length(bestFitRays.intersection_rays.positive)){
       print("PAIRWISE COMPARISON POSITIVE ANGLE")
-      #print(pos_adjusted_angle[[p]])
+      print(pos_adjusted_angle[[p]])
       print(bestFitRays.intersection_rays.positive[[p]])
+      print("called close up pairwise")
+      print(back_x_m[[p]])
       #points(back_x_m[[p]], back_y_m[[p]], col = "red")
       print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
-      #print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
   
@@ -1846,7 +1988,7 @@ ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origi
   uniqueSegments <- get_unique_segments(filteredTraces)
   dataOfEachCurveNNj <- read_in_data(filteredTraces)
   
-  matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle)
+  matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle, x_coor, y_coor)
   # print("in ray up right aftewards")
   # print(matrixIntersection)
   differences <- sapply(matrixIntersection, function(x) t(x))
@@ -1927,7 +2069,8 @@ find_curvature <- function(xargs, yargs, split_point = 0.1){
   y_max <- y_args[length(y_args)]
   #double check x_indexes
   #can improve this to return "percentages" along the line
-  return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center*split_point], y_args[index_center*split_point], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max, y_min, y_max))
+  # return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center*split_point], y_args[index_center*split_point], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max, y_min, y_max))
+  return(c(lm_front[2], lm_back[2], lm_front[1], lm_back[1], center_x_split, center_y_split, x_args[index_center/split_point], y_args[index_center/split_point], x_args[index_center + (length(x_args) - index_center) * split_point], y_args[index_center + (length(x_args) - index_center) * split_point], x_min, x_max, y_min, y_max))
   
 }
 
@@ -1985,7 +2128,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
   uniqueSegments <- get_unique_segments(rawTraces)
   dataOfEachCurveNNj <- read_in_data(rawTraces)
   
-  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
+  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, x_coor, y_coor)
   
   rx <- plotStyleTraces(rawTraces = rawTraces, matrixIntersection = matrixIntersection, polarTraces = polarTraces, 
                         dataOfEachCurveNNj = dataOfEachCurveNNj, uniqueSegments = uniqueSegments, 
@@ -2158,7 +2301,7 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   uniqueSegments <- get_unique_segments(filteredTraces)
   dataOfEachCurveNNj <- read_in_data(filteredTraces)
   
-  matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle)
+  matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle, x_coor, y_coor)
   # print("matrix intsection AFTERWARDS pairwise")
   # print(matrixIntersection)
   differences <- sapply(matrixIntersection, function(x) t(x))
@@ -2186,10 +2329,17 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
     differences2 <- differences
   }
   
-  values <- as.vector(unlist(differences2))
+  #values <- as.vector(unlist(differences2))
+  values <- as.vector(unlist(lapply(differences2, as.vector)))
+  # print("values")
+  # print(values)
+  # print("min value")
+  # print(angle)
+  # print(min(values, na.rm = TRUE))
   values <- (values - min(values, na.rm = TRUE)) #/(max(values, na.rm = TRUE) - min(values, na.rm = TRUE)))
   number_col <- as.vector(sapply(differences2, function(x) length(x)))
-  
+  # print("columns")
+  # print(number_col)
   for (category in 1:(length(names(differences2)))){
     if (length(mask) != 0){
       categories <- append(categories, sapply(mask[[category]], function(x) rep(x, each = number_col[[category]])))
@@ -2198,13 +2348,27 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
     }
     
   }
+  # categories <- c()
+  # for (category in seq_along(differences2)) {
+  #   if (length(mask) != 0) {
+  #     categories <- c(categories,
+  #                     rep(mask[[category]], each = number_col[category]))
+  #   } else {
+  #     categories <- c(categories,
+  #                     rep(names(differences2)[category], each = number_col[category]))
+  #   }
+  # }
   
-  seg_text = rle(filteredTraces$seg_text)$values
-  seg_text = seg_text[seq(1, length(seg_text), by = 2)]
+  #seg_text = rle(filteredTraces$seg_text)$values
+  #seg_text = seg_text[seq(1, length(seg_text), by = 2)]
+  # print("values after")
+  # print(values)
+  # print(categories)
   intersections_grouped <- data.frame(values, categories)
   #print(data.frame(values, categories, seg_text), n = 150)
-  intersections_grouped = na.omit(intersections_grouped)
-  #print(intersections_grouped)
+  #print(data.frame(values, categories))
+  #intersections_grouped = na.omit(intersections_grouped)
+  print(intersections_grouped)
   pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
   
   
