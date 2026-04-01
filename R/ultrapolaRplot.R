@@ -1837,7 +1837,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print(bestFitRays.intersection_rays.negative[[p]])
       print("called close up pairwise")
       print(front_x_l[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
       #print("called far away pairwise")
       #print(front_x_org[[p]])
       print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
@@ -1852,7 +1852,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
       print("called close up pairwise")
       print(back_x_m[[p]])
       #points(back_x_m[[p]], back_y_m[[p]], col = "red")
-      print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
       print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
     }
   }
