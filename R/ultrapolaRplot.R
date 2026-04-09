@@ -1341,6 +1341,7 @@ elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette
       means.styles = append(means.styles, 1)
     }
   }
+  names(means.styles) <- uniqueSegments
   
   for (segment in 1:length(uniqueSegments)){
     seg_name <- uniqueSegments[[segment]]
@@ -1377,13 +1378,14 @@ elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette
     all_points <- rbind(all_points, segment_df)
   }
   all_points <- na.omit(all_points)
+  all_points$segment <- factor(all_points$segment, levels = uniqueSegments)
   
   # Calculate distance from origin for each point
-  all_points$distance_from_origin <- sqrt(all_points$x^2 + all_points$y^2)
+  all_points$distance_from_origin <- sqrt((all_points$x + 0.2)^2 + (all_points$y-0.625)^2)
   
   # Pairwise t-tests
-  pairwise_results <- pairwise.t.test(all_points$distance_from_origin, all_points$segment, 
-                                      paired = FALSE, pool.sd = FALSE, 
+  pairwise_results <- pairwise.t.test(all_points$distance_from_origin, all_points$segment,
+                                      paired = FALSE, pool.sd = FALSE,
                                       p.adjust.method = "bonferroni")
   print("COMPARING PAIRWISE DISTANCES BETWEEN CLUSTERS")
   print(pairwise_results)
@@ -1401,9 +1403,37 @@ elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette
   }
   sig_pairs <- do.call(rbind.data.frame, sig_pairs_list)
   
+  # permanova_result <- adonis2(all_points[, c("x", "y")] ~ segment, data = all_points, method = "euclidean")
+  # print("COMPARING PAIRWISE DISTANCES BETWEEN CLUSTERS")
+  # #print(permanova_result)
+  # 
+  # # Pairwise PERMANOVA with Bonferroni correction
+  # seg_levels <- unique(all_points$segment)
+  # sig_pairs_list <- list()
+  # all_pairs <- list()
+  # for (i in 1:(length(seg_levels)-1)) {
+  #   for (j in (i+1):length(seg_levels)) {
+  #     subset_df <- all_points[all_points$segment %in% c(seg_levels[i], seg_levels[j]), ]
+  #     res <- adonis2(subset_df[, c("x", "y")] ~ segment, data = subset_df, method = "euclidean", permutations = 999)
+  #     all_pairs[[length(all_pairs) + 1]] <- list(pairs = paste(seg_levels[i], "vs", seg_levels[j]), p = res$`Pr(>F)`[1])
+  #   }
+  # }
+  # 
+  # p_adjusted <- p.adjust(sapply(all_pairs, function(x) x$p), method = "bonferroni")
+  # for (k in 1:length(all_pairs)) {
+  #   if (!is.na(p_adjusted[k]) && p_adjusted[k] < 0.05) {
+  #     sig_pairs_list[[length(sig_pairs_list) + 1]] <- list(pairs = all_pairs[[k]]$pairs, p.adjusted = p_adjusted[k])
+  #   }
+  # }
+  # print(setNames(p_adjusted, sapply(all_pairs, function(x) x$pairs)))
+  # print(p_adjusted)
+  # sig_pairs <- do.call(rbind.data.frame, sig_pairs_list)
+  
+  
   color_mapping = setNames(unlist(palette), uniqueSegments)
   bubble_comp <- ggplot(all_points, aes(x = x, y = y, color = segment, fill = segment)) +
     geom_point(alpha = 0.6, size = 2) +
+    #stat_ellipse(level = 0.95, geom = "polygon", alpha = 0.2, linewidth = 1) +  # transparent fill
     stat_ellipse(aes(linetype = segment), level = 0.95, geom = "polygon", alpha = 0.2, linewidth = 1) +
     scale_color_manual(values = color_mapping) +
     scale_fill_manual(values = color_mapping) +
