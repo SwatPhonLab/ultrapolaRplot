@@ -2411,12 +2411,20 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
     )
   print(pAdj)
   
+  # fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
+  #        add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
+  #   guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC)),
+  #   color = "none"        # hide color legend (redundant)
+  # )+
+  #   theme(axis.text.x = element_text(size = 30), axis.text.y = element_text(size = 30), legend.text = element_text(size = 20))+
+  # stat_pvalue_manual(
+  #   comparisons_plot,
+  #   label = "p.adj.signif"
+  # )
+  
   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
                      add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
-    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC)),
-           color = "none"        # hide color legend (redundant)
-    )+
-    theme(axis.text.x = element_text(size = 30), axis.text.y = element_text(size = 30), legend.text = element_text(size = 20))+
+    theme(axis.text.x = element_text(size = 30), axis.text.y = element_text(size = 30), legend.text = element_text(size = 20), legend.position = "none")+
     stat_pvalue_manual(
       comparisons_plot,
       label = "p.adj.signif"
