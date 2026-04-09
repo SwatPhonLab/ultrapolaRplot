@@ -1866,7 +1866,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   }
   
   if (bubble){
-    elbow_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
+    elbow_plot(matrixIntersection, uniqueSegments, rayIncrement, palette, means.styles = means.styles)
   }
   
   if (angle_between_best_fit){
