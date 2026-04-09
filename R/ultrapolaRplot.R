@@ -1327,12 +1327,19 @@ best_fit_lines_traces  <- function(matrixIntersection, uniqueSegments, rayIncrem
 #   print(angle_violin)
 # }
 
-elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
+elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette, means.styles = c()){
   curvature_points_x = list()
   curvature_points_y = list()
   for (segment in 1:length(uniqueSegments)){
     curvature_points_x[[uniqueSegments[[segment]]]] <- list()
     curvature_points_y[[uniqueSegments[[segment]]]] <- list()
+    
+  }
+  
+  if (length(means.styles) < length(uniqueSegments)){
+    for (i in 1:(length(uniqueSegments) - length(means.styles))){
+      means.styles = append(means.styles, 1)
+    }
   }
   
   for (segment in 1:length(uniqueSegments)){
@@ -1397,9 +1404,10 @@ elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette
   color_mapping = setNames(unlist(palette), uniqueSegments)
   bubble_comp <- ggplot(all_points, aes(x = x, y = y, color = segment, fill = segment)) +
     geom_point(alpha = 0.6, size = 2) +
-    stat_ellipse(level = 0.95, geom = "polygon", alpha = 0.2, linewidth = 1) +  # transparent fill
+    stat_ellipse(aes(linetype = segment), level = 0.95, geom = "polygon", alpha = 0.2, linewidth = 1) +
     scale_color_manual(values = color_mapping) +
     scale_fill_manual(values = color_mapping) +
+    scale_linetype_manual(values = means.styles) +
     theme_minimal() +
     coord_equal()
   
