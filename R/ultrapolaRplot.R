@@ -1381,7 +1381,7 @@ elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette
   all_points$segment <- factor(all_points$segment, levels = uniqueSegments)
   
   # Calculate distance from origin for each point
-  all_points$distance_from_origin <- sqrt((all_points$x + 0.2)^2 + (all_points$y-0.625)^2)
+  all_points$distance_from_origin <- sqrt((all_points$x)^2 + (all_points$y)^2)
   
   # Pairwise t-tests
   pairwise_results <- pairwise.t.test(all_points$distance_from_origin, all_points$segment,
@@ -1395,13 +1395,14 @@ elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette
   p_matrix <- pairwise_results$p.value
   for (i in 1:nrow(p_matrix)) {
     for (j in 1:ncol(p_matrix)) {
-      if (!is.na(p_matrix[i, j]) && p_matrix[i, j] < 0.05) {
+      if (!is.na(p_matrix[i, j]) && (p_matrix[i, j] < 0.05)) {
         pair_name <- paste(rownames(p_matrix)[i], "vs", colnames(p_matrix)[j])
         sig_pairs_list[[length(sig_pairs_list) + 1]] <- list(pairs = pair_name, p.adjusted = p_matrix[i, j])
       }
     }
   }
   sig_pairs <- do.call(rbind.data.frame, sig_pairs_list)
+  
   
   # permanova_result <- adonis2(all_points[, c("x", "y")] ~ segment, data = all_points, method = "euclidean")
   # print("COMPARING PAIRWISE DISTANCES BETWEEN CLUSTERS")
@@ -1447,7 +1448,7 @@ elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette
     bubble_comp <- bubble_comp +
       annotate("text", x = Inf, y = Inf, 
                label = paste("Significant comparisons:\n", sig_text),
-               hjust = 1.1, vjust = 1.1, size = 3, 
+               hjust = 1.1, vjust = 1.1, size = 2.5, 
                color = "black")
   }
   
