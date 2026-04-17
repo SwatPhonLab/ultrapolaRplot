@@ -1258,93 +1258,132 @@ determine_h_number_intersected <- function(matrixIntersection, uniqueSegments, b
 ```
 
 ```{r}
-elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette){
+elbow_plot <- function(matrixIntersection, uniqueSegments, rayIncrement, palette, means.styles = c()){
   curvature_points_x = list()
-    curvature_points_y = list()
-    for (segment in 1:length(uniqueSegments)){
-      curvature_points_x[[uniqueSegments[[segment]]]] <- list()
-      curvature_points_y[[uniqueSegments[[segment]]]] <- list()
+  curvature_points_y = list()
+  for (segment in 1:length(uniqueSegments)){
+    curvature_points_x[[uniqueSegments[[segment]]]] <- list()
+    curvature_points_y[[uniqueSegments[[segment]]]] <- list()
+    
+  }
+  
+  if (length(means.styles) < length(uniqueSegments)){
+    for (i in 1:(length(uniqueSegments) - length(means.styles))){
+      means.styles = append(means.styles, 1)
     }
-    
-    for (segment in 1:length(uniqueSegments)){
-      seg_name <- uniqueSegments[[segment]]
-      # each individual trace x y curvature
-      for (trace in 1:nrow(matrixIntersection[[seg_name]])){
-        trace_rx <- c()
-        trace_ry <- c()
-        for (ray in 1:ncol(matrixIntersection[[seg_name]])){
-          if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
-            trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
-            trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
-          } else {
-            trace_rx <- append(trace_rx, NA)
-            trace_ry <- append(trace_ry, NA)
-          }
-        }
-        curvature_point <- x_y_curvature(trace_rx, trace_ry)
-        
-        curvature_points_x[[seg_name]] <- append(curvature_points_x[[seg_name]], curvature_point[1])
-        curvature_points_y[[seg_name]] <- append(curvature_points_y[[seg_name]], curvature_point[2])
-      }
-      curvature_points_x[[seg_name]] <- unlist(curvature_points_x[[seg_name]])
-      curvature_points_y[[seg_name]] <- unlist(curvature_points_y[[seg_name]])
-    }
-    
-    all_points <- data.frame()
-    for (segment in 1:length(uniqueSegments)){
-      seg_name <- uniqueSegments[[segment]]
-      segment_df <- data.frame(
-        x = curvature_points_x[[seg_name]],
-        y = curvature_points_y[[seg_name]],
-        segment = seg_name
-      )
-      all_points <- rbind(all_points, segment_df)
-    }
-    all_points <- na.omit(all_points)
-    
-    # Calculate distance from origin for each point
-    all_points$distance_from_origin <- sqrt(all_points$x^2 + all_points$y^2)
-    
-    # Pairwise t-tests
-    pairwise_results <- pairwise.t.test(all_points$distance_from_origin, all_points$segment, 
-                                       paired = FALSE, pool.sd = FALSE, 
-                                       p.adjust.method = "bonferroni")
-    print("COMPARING PAIRWISE DISTANCES BETWEEN CLUSTERS")
-    print(pairwise_results)
-    
-    # Extract significant pairs from p-value matrix
-    sig_pairs_list <- list()
-    p_matrix <- pairwise_results$p.value
-    for (i in 1:nrow(p_matrix)) {
-      for (j in 1:ncol(p_matrix)) {
-        if (!is.na(p_matrix[i, j]) && p_matrix[i, j] < 0.05) {
-          pair_name <- paste(rownames(p_matrix)[i], "vs", colnames(p_matrix)[j])
-          sig_pairs_list[[length(sig_pairs_list) + 1]] <- list(pairs = pair_name, p.adjusted = p_matrix[i, j])
+  }
+  names(means.styles) <- uniqueSegments
+
+  for (segment in 1:length(uniqueSegments)){
+    seg_name <- uniqueSegments[[segment]]
+    # each individual trace x y curvature
+    for (trace in 1:nrow(matrixIntersection[[seg_name]])){
+      trace_rx <- c()
+      trace_ry <- c()
+      for (ray in 1:ncol(matrixIntersection[[seg_name]])){
+        if (!is.na(matrixIntersection[[seg_name]][trace, ray])){
+          trace_rx <- append(trace_rx, cos(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+          trace_ry <- append(trace_ry, sin(rayIncrement*ray) * matrixIntersection[[seg_name]][trace, ray])
+        } else {
+          trace_rx <- append(trace_rx, NA)
+          trace_ry <- append(trace_ry, NA)
         }
       }
+      curvature_point <- x_y_curvature(trace_rx, trace_ry)
+
+      curvature_points_x[[seg_name]] <- append(curvature_points_x[[seg_name]], curvature_point[1])
+      curvature_points_y[[seg_name]] <- append(curvature_points_y[[seg_name]], curvature_point[2])
     }
-    sig_pairs <- do.call(rbind.data.frame, sig_pairs_list)
-    
-    color_mapping = setNames(unlist(palette), uniqueSegments)
-    bubble_comp <- ggplot(all_points, aes(x = x, y = y, color = segment, fill = segment)) +
-      geom_point(alpha = 0.6, size = 2) +
-      stat_ellipse(level = 0.95, geom = "polygon", alpha = 0.2, linewidth = 1) +  # transparent fill
-      scale_color_manual(values = color_mapping) +
-      scale_fill_manual(values = color_mapping) +
-      theme_minimal() +
-      coord_equal()
-    
-    if (nrow(sig_pairs) > 0) {
-      sig_text <- paste(sig_pairs$pairs, collapse = "\n")
-      
-      bubble_comp <- bubble_comp +
-        annotate("text", x = Inf, y = Inf, 
-                 label = paste("Significant comparisons:\n", sig_text),
-                 hjust = 1.1, vjust = 1.1, size = 3, 
-                 color = "black")
+    curvature_points_x[[seg_name]] <- unlist(curvature_points_x[[seg_name]])
+    curvature_points_y[[seg_name]] <- unlist(curvature_points_y[[seg_name]])
+  }
+
+  all_points <- data.frame()
+  for (segment in 1:length(uniqueSegments)){
+    seg_name <- uniqueSegments[[segment]]
+    segment_df <- data.frame(
+      x = curvature_points_x[[seg_name]],
+      y = curvature_points_y[[seg_name]],
+      segment = seg_name
+    )
+    all_points <- rbind(all_points, segment_df)
+  }
+  all_points <- na.omit(all_points)
+  all_points$segment <- factor(all_points$segment, levels = uniqueSegments)
+
+  # Calculate distance from origin for each point
+  all_points$distance_from_origin <- sqrt((all_points$x)^2 + (all_points$y)^2)
+
+  # Pairwise t-tests
+  pairwise_results <- pairwise.t.test(all_points$distance_from_origin, all_points$segment,
+                                      paired = FALSE, pool.sd = FALSE,
+                                      p.adjust.method = "bonferroni")
+  print("COMPARING PAIRWISE DISTANCES BETWEEN CLUSTERS")
+  print(pairwise_results)
+
+  # Extract significant pairs from p-value matrix
+  sig_pairs_list <- list()
+  p_matrix <- pairwise_results$p.value
+  for (i in 1:nrow(p_matrix)) {
+    for (j in 1:ncol(p_matrix)) {
+      if (!is.na(p_matrix[i, j]) && (p_matrix[i, j] < 0.05)) {
+        pair_name <- paste(rownames(p_matrix)[i], "vs", colnames(p_matrix)[j])
+        sig_pairs_list[[length(sig_pairs_list) + 1]] <- list(pairs = pair_name, p.adjusted = p_matrix[i, j])
+      }
     }
-    
-    print(bubble_comp)
+  }
+  sig_pairs <- do.call(rbind.data.frame, sig_pairs_list)
+  
+  
+  # permanova_result <- adonis2(all_points[, c("x", "y")] ~ segment, data = all_points, method = "euclidean")
+  # print("COMPARING PAIRWISE DISTANCES BETWEEN CLUSTERS")
+  # #print(permanova_result)
+  # 
+  # # Pairwise PERMANOVA with Bonferroni correction
+  # seg_levels <- unique(all_points$segment)
+  # sig_pairs_list <- list()
+  # all_pairs <- list()
+  # for (i in 1:(length(seg_levels)-1)) {
+  #   for (j in (i+1):length(seg_levels)) {
+  #     subset_df <- all_points[all_points$segment %in% c(seg_levels[i], seg_levels[j]), ]
+  #     res <- adonis2(subset_df[, c("x", "y")] ~ segment, data = subset_df, method = "euclidean", permutations = 999)
+  #     all_pairs[[length(all_pairs) + 1]] <- list(pairs = paste(seg_levels[i], "vs", seg_levels[j]), p = res$`Pr(>F)`[1])
+  #   }
+  # }
+  # 
+  # p_adjusted <- p.adjust(sapply(all_pairs, function(x) x$p), method = "bonferroni")
+  # for (k in 1:length(all_pairs)) {
+  #   if (!is.na(p_adjusted[k]) && p_adjusted[k] < 0.05) {
+  #     sig_pairs_list[[length(sig_pairs_list) + 1]] <- list(pairs = all_pairs[[k]]$pairs, p.adjusted = p_adjusted[k])
+  #   }
+  # }
+  # print(setNames(p_adjusted, sapply(all_pairs, function(x) x$pairs)))
+  # print(p_adjusted)
+  # sig_pairs <- do.call(rbind.data.frame, sig_pairs_list)
+
+
+  color_mapping = setNames(unlist(palette), uniqueSegments)
+  bubble_comp <- ggplot(all_points, aes(x = x, y = y, color = segment, fill = segment)) +
+    geom_point(alpha = 0.6, size = 2) +
+    #stat_ellipse(level = 0.95, geom = "polygon", alpha = 0.2, linewidth = 1) +  # transparent fill
+    stat_ellipse(aes(linetype = segment), level = 0.95, geom = "polygon", alpha = 0.2, linewidth = 1) +
+    scale_color_manual(values = color_mapping) +
+    scale_fill_manual(values = color_mapping) +
+    scale_linetype_manual(values = means.styles) +
+    theme_minimal() +
+    coord_equal()
+
+  if (nrow(sig_pairs) > 0) {
+    sig_text <- paste(sig_pairs$pairs, collapse = "\n")
+
+    bubble_comp <- bubble_comp +
+      annotate("text", x = Inf, y = Inf, 
+               label = paste("Significant comparisons:\n", sig_text),
+               hjust = 1.1, vjust = 1.1, size = 2.5, 
+               color = "black")
+  }
+
+  print(bubble_comp)
 }
 ```
 
@@ -1449,7 +1488,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
                             maskCategories = c(), rays = list(), bestFitRays =
                               FALSE,
-                            bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, percentage = 0.5,
+                            bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1,
                             bestFitRays.intersection_rays.negative = c(), bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey",
                             elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE, angle_between_best_fit = FALSE){
   
@@ -1883,15 +1922,16 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   }
   
   if (bubble){
-    elbow_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
+    elbow_plot(matrixIntersection, uniqueSegments, rayIncrement, palette, means.styles = means.styles)
   }
   
   if (angle_between_best_fit){
     angle_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
   }
   
+  #filteredTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600, x_coor = 0, y_coor = 0, interval = 1, singleIncrements = TRUE, maskCategories = c()
   if (difference_plot){
-    differencePlot(rawTraces)
+    differencePlot(rawTraces, origin.algorithm = origin.algorithm)
   }
     
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
@@ -2025,7 +2065,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), bestFitRays = FALSE,
-                       bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, percentage = 0.5, bestFitRays.intersection_rays.negative = c(),
+                       bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, bestFitRays.intersection_rays.negative = c(),
                        bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE, angle_between_best_fit = FALSE){
   
   if (typeof(polarTraces) == "character"){
@@ -2050,7 +2090,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                   bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                   legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                   maskCategories = maskCategories, rays = rays, bestFitRays = bestFitRays, bestFitRays.show_elbows =
-                    bestFitRays.show_elbows, perpendicularRays = perpendicularRays, bestFitRays.start_point_density = bestFitRays.start_point_density, percentage = percentage, 
+                    bestFitRays.show_elbows, perpendicularRays = perpendicularRays, bestFitRays.start_point_density = bestFitRays.start_point_density,
                   bestFitRays.intersection_rays.negative = bestFitRays.intersection_rays.negative, bestFitRays.intersection_rays.positive = bestFitRays.intersection_rays.positive, angle_neg_rotate = angle_neg_rotate, angle_pos_rotate = angle_pos_rotate,
                   ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot, angle_between_best_fit = angle_between_best_fit)
   #return(rx)
@@ -2061,10 +2101,16 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
 ```{r}
 #rawTraces <- loadAllTracesMidPoint("~/Documents/plinguistics/updatedRussianPalatals/ultrasound-data-RussianPalatals-202012");
 #rawTracesT <- loadAllTracesMidPoint("~/Documents/plinguistics/ultrasound-data-TurkicVowels-processed/P06/");
-rawTracesQ <- loadAllTracesMidPoint("~/Documents/plinguistics/Qumuq/ultrasound-data-QumuqKGQ-190929");
+#rawTracesQ <- loadAllTracesMidPoint("~/Documents/plinguistics/Qumuq/ultrasound-data-QumuqKGQ-190929");
 #rawTracesTartar <- loadAllTracesMidPoint("~/Documents/plinguistics/TartarKQ2/ultrasound-data-TatarKQ-191001")
-#rawTracesD <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")  
+rawTracesD <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-data-DolganCs-2024")  
 ```
+
+```{r}
+rawTracesD
+```
+
+
 ```{r}
 
 DarkRed = '#B30000'
@@ -2106,14 +2152,14 @@ LightPurple = '#CBC3E3'
 # bestFitRays.intersection_rays.negative = c(0.45), bestFitRays.intersection_rays.positive = c(0.35, 0.85),
 # bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey", bubble = TRUE, bestFitRays.show_elbows = TRUE)
 
-# filteredTraces <- plotTraces(rawTracesD, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"),
-# categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('ɛ'), c('œ'), c('ɯ', 'ɯː'), c('u'), c('a'), c('ɔ')),
-# maskCategories = c("i/iː", "y/yː", "ɛ", "œ", "ɯ/ɯː", "u", "ɑ", "ɔ"),
-# palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, Pink, Pink, DarkRed, LightRed),
-# means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=2,
-# bestFitRays.intersection_rays.negative = c(0.45), bestFitRays.intersection_rays.positive = c(0.35, 0.85),
-# bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey")
+filteredTraces <- plotTraces(rawTracesD, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"),
+categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('ɛ'), c('œ'), c('ɯ', 'ɯː'), c('u'), c('a'), c('ɔ')),
+maskCategories = c("i/iː", "y/yː", "ɛ", "œ", "ɯ/ɯː", "u", "ɑ", "ɔ"),
+palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, Pink, Pink, DarkRed, LightRed),
+means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=2,
+bestFitRays = TRUE, perpendicularRays =  TRUE, bestFitRays.start_point_density =  1, ray_color="grey", difference_plot = TRUE)#, pdf.filename = "bubbleDolgan3.pdf")
 
+filteredTraces
 # blah <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2", "cons2"), categoriesAll = list(c('lʲ.#_V.F', 'lʲ.V_#.F', 'lʲ.V_V.FF', 'lʲ.#_V.B', 'lʲ.V_#.B', 'lʲ.V_V.BB'), c('nʲ.#_V.B', 'nʲ.V_#.B', 'nʲ.V_V.BB', 'nʲ.#_V.F', 'nʲ.V_#.F', 'nʲ.V_V.FF'),  c('mʲ.#_V.F', 'mʲ.V_#.F', 'mʲ.V_V.FF', 'mʲ.#_V.B', 'mʲ.V_#.B', 'mʲ.V_V.BB'), c('sʲ.#_V.F', 'sʲ.V_#.F', 'sʲ.V_V.FF', 'sʲ.#_V.B', 'sʲ.V_#.B', 'sʲ.V_V.BB', 'zʲ.V_V.FF', 'zʲ.V_#.B'), c('kʲ.#_V.F', 'gʲ.#_V.F', 'gʲ.V_V.FF'), c('ɫ.#_V.F', 'ɫ.V_#.F', 'ɫ.V_V.FF', 'ɫ.#_V.B', 'ɫ.V_#.B', 'ɫ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB'), c('sˠ.#_V.F', 'sˠ.V_#.F', 'sˠ.V_V.FF', 'sˠ.#_V.B', 'sˠ.V_#.B', 'sˠ.V_V.BB', 'zˠ.V_#.F', 'zˠ.V_#.M', 'zˠ.V_V.MM', 'zˠ.V_#.B'), c('kˠ.#_V.F', 'gˠ.#_V.F', 'kˠ.#_V.M', 'gˠ.V_#.B', 'gˠ.V_V.BB', 'kˠ.#_V.B')), maskCategories = c("lʲ", "nʲ", "mʲ", "Sʲ", "Kʲ", "ɫ", "nˠ", "mˠ", "Sˠ", "Kˠ"), palette = c(LightBlue, LightGreen, LightRed, LightPurple, Grey, DarkBlue, DarkGreen, DarkRed, DarkPurple, Black), means.styles = c(1,2,3,4,5,1,2,3,4,5), bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 0, bestFitRays.intersection_rays.negative = c(0.35, 0.8), bestFitRays.intersection_rays.positive = c(0.175, 0.55), legend.size=1.5, angle_pos = c(-20, 0), points.display = FALSE)#, pdf.filename = "palatals-non-palatals_comparison2.pdf")
 
 # x <- plotTraces(rawTracesTartar, mergeCategories = c(TRUE),
@@ -2131,22 +2177,22 @@ LightPurple = '#CBC3E3'
 # angle_pos_rotate = c(-20),
 # legend.size=1.5)#, pdf.filename = "tartar.pdf")
 
-plotTraces(rawTracesQ, mergeCategories = c(TRUE),
-#tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments", NA),
-#categoriesAll = list(c('a'), c('u'), c('o'), c('ɯ'), c('e'), c('y'), c('ø'), c('i'), NA),
-#maskCategories = c("a", "u", "o", "ɯ", "e", "y", "ø", "i", "Palate"),
-categoriesAll = list(c('i'), c('y'), c('e'), c('ø'), c('ɯ'), c('u'), c('a'), c('o')),
-#layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'),
-layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue'),
-palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, LightRed, LightRed, DarkRed, DarkRed),
-#palette = c(DarkRed, LightRed, DarkRed, LightRed, DarkBlue, LightBlue, DarkBlue, LightBlue, Black),
-#means.styles = c(1,2,2,1,1,2,2,1,1)
-means.styles = c(1,2,1,2,1,2,1,2),
-bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 1,
-bestFitRays.intersection_rays.negative = c(0.35), bestFitRays.intersection_rays.positive = c(0.25, 0.6),
-angle_pos_rotate = c(-2,20),
-legend.size=2, legend.position="bottomleft", origin.algorithm = "BottomMean"
-)
+# plotTraces(rawTracesQ, mergeCategories = c(TRUE),
+# #tiernameAll = c("segments", "segments", "segments", "segments", "segments", "segments", "segments", "segments", NA),
+# #categoriesAll = list(c('a'), c('u'), c('o'), c('ɯ'), c('e'), c('y'), c('ø'), c('i'), NA),
+# #maskCategories = c("a", "u", "o", "ɯ", "e", "y", "ø", "i", "Palate"),
+# categoriesAll = list(c('i'), c('y'), c('e'), c('ø'), c('ɯ'), c('u'), c('a'), c('o')),
+# #layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'palate'),
+# layersAll = c('tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue', 'tongue'),
+# palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, LightRed, LightRed, DarkRed, DarkRed),
+# #palette = c(DarkRed, LightRed, DarkRed, LightRed, DarkBlue, LightBlue, DarkBlue, LightBlue, Black),
+# #means.styles = c(1,2,2,1,1,2,2,1,1)
+# means.styles = c(1,2,1,2,1,2,1,2),
+# bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 1,
+# bestFitRays.intersection_rays.negative = c(0.35), bestFitRays.intersection_rays.positive = c(0.25, 0.6),
+# angle_pos_rotate = c(-2,20),
+# legend.size=2, legend.position="bottomleft", origin.algorithm = "BottomMean", bubble = TRUE
+# )
 
 # 
 # blah <- plotTraces(rawTraces, mergeCategories = c(TRUE), tiernameAll = c("cons2", "cons2", "cons2", "cons2"), categoriesAll = list(c('nʲ.#_V.B', 'nʲ.V_#.B', 'nʲ.V_V.BB', 'nʲ.#_V.F', 'nʲ.V_#.F', 'nʲ.V_V.FF'),  c('mʲ.#_V.F', 'mʲ.V_#.F', 'mʲ.V_V.FF', 'mʲ.#_V.B', 'mʲ.V_#.B', 'mʲ.V_V.BB'), c('nˠ.#_V.B', 'nˠ.V_#.B', 'nˠ.V_V.BB', 'nˠ.#_V.F', 'nˠ.V_#.F', 'nˠ.V_V.FF'), c('mˠ.#_V.F', 'mˠ.V_#.F', 'mˠ.V_V.FF', 'mˠ.#_V.B', 'mˠ.V_#.B', 'mˠ.V_V.BB')), maskCategories = c("nʲ", "mʲ","nˠ", "mˠ"), palette = c(LightGreen, LightRed, DarkGreen, DarkRed), bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.start_point_density = 1, bestFitRays.intersection_rays.negative = c(0.35, 0.8), bestFitRays.intersection_rays.positive = c(0.175, 0.55), legend.size=1.5, angle_pos = c(-20, 0), points.display = FALSE) #pdf.filename = "palatals-non-palatals_comparison.pdf",
@@ -2366,7 +2412,7 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   uniqueSegments <- get_unique_segments(filteredTraces)
   dataOfEachCurveNNj <- read_in_data(filteredTraces)
     
-  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
+  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, x_coor, y_coor)
   
   meanDifference <- list()
   standardDeviation <- list()
@@ -2672,12 +2718,20 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   )
   print(pAdj)
 
-  fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
+  # fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
+  #        add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
+  #   guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC)),
+  #   color = "none"        # hide color legend (redundant)
+  # )+
+  #   theme(axis.text.x = element_text(size = 30), axis.text.y = element_text(size = 30), legend.text = element_text(size = 20))+
+  # stat_pvalue_manual(
+  #   comparisons_plot,
+  #   label = "p.adj.signif"
+  # )
+  
+   fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
          add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
-    guides(fill = guide_legend(override.aes = list(shape = 22, size = 9, colour = paletteC)),
-    color = "none"        # hide color legend (redundant)
-  )+
-    theme(axis.text.x = element_text(size = 30), axis.text.y = element_text(size = 30), legend.text = element_text(size = 20))+
+    theme(axis.text.x = element_text(size = 30), axis.text.y = element_text(size = 30), legend.text = element_text(size = 20), legend.position = "none")+
   stat_pvalue_manual(
     comparisons_plot,
     label = "p.adj.signif"

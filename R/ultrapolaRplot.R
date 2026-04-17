@@ -1463,7 +1463,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
                             maskCategories = c(), rays = list(), bestFitRays =
                               FALSE,
-                            bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, percentage = 0.5,
+                            bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1,
                             bestFitRays.intersection_rays.negative = c(), bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey",
                             elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE, angle_between_best_fit = FALSE){
   
@@ -1904,8 +1904,9 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     angle_plot(matrixIntersection, uniqueSegments, rayIncrement, palette)
   }
   
+  #filteredTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600, x_coor = 0, y_coor = 0, interval = 1, singleIncrements = TRUE, maskCategories = c()
   if (difference_plot){
-    differencePlot(rawTraces)
+    differencePlot(rawTraces, origin.algorithm = origin.algorithm)
   }
   
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
@@ -2153,7 +2154,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), bestFitRays = FALSE,
-                       bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, percentage = 0.5, bestFitRays.intersection_rays.negative = c(),
+                       bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, bestFitRays.intersection_rays.negative = c(),
                        bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE, angle_between_best_fit = FALSE){
   
   if (typeof(polarTraces) == "character"){
@@ -2178,7 +2179,7 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                         legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                         maskCategories = maskCategories, rays = rays, bestFitRays = bestFitRays, bestFitRays.show_elbows =
-                          bestFitRays.show_elbows, perpendicularRays = perpendicularRays, bestFitRays.start_point_density = bestFitRays.start_point_density, percentage = percentage, 
+                          bestFitRays.show_elbows, perpendicularRays = perpendicularRays, bestFitRays.start_point_density = bestFitRays.start_point_density,
                         bestFitRays.intersection_rays.negative = bestFitRays.intersection_rays.negative, bestFitRays.intersection_rays.positive = bestFitRays.intersection_rays.positive, angle_neg_rotate = angle_neg_rotate, angle_pos_rotate = angle_pos_rotate,
                         ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot, angle_between_best_fit = angle_between_best_fit)
   #return(rx)
@@ -2193,7 +2194,7 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   uniqueSegments <- get_unique_segments(filteredTraces)
   dataOfEachCurveNNj <- read_in_data(filteredTraces)
   
-  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement)
+  matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, x_coor, y_coor)
   
   meanDifference <- list()
   standardDeviation <- list()
