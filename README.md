@@ -42,7 +42,6 @@ filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays
 * `bands.linewidth` - line thickness of standard deviation bands
 * `bestFitRays` - boolean, whether or not to display lines of best fit for tongue body and tongue root
 * `bestFitRays.start_point_density` - Number of intersecting traces per category needed to extend bestFitRays until (default = 1), 0 would be until farthest points, 2 would be until each segment has standard deviation
-* `perpendicularRays` - boolean, whether or not to show perpedicular rays
 * `bestFitRays.intersection_rays.negative` - List of percentages along bestfit ray on left side to intersect data
 * `bestFitRays.intersection_rays.positive` - List of percentages along bestfit ray on right side to intersect data
 * `ray_color` - color of bestFitRays.intersection_rays.negative and bestFitRays.intersection_rays.positive (default = "darkgrey")
