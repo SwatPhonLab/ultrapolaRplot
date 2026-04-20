@@ -52,6 +52,7 @@ filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays
 * `bestFitRays.show_elbows` - boolean, whether or not to show PMC along means
 * `bubble` - boolean, whether or not to display PMC cluster graph and pairwise comparison
 * `difference_plot` - boolean, whether or not to display difference_plot for the first two segments
+* `debug_intersections` - boolean, whether or not to print data frame of segments and their intersections with the perpedicular ray(s)
 * `elbow_color` - color of PMC along means (default = "black")
 * `interval` - sampling interval, in degrees, for finding intersections with existing traces (default = `1`)
 * `means.lines` - boolean, whether or not to display mean lines
