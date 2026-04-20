@@ -19,7 +19,7 @@ The following code snippet shows a basic example of use:
 library(ultrapolaRplot)
 
 rawTraces <- loadAllTracesMidPoint(filepath)  # project directory containing UltraTrace metadata file; tier to identify non-empty elements from for categories to plot
-filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.intersection_rays.positive = c(0.5), differencePlot = TRUE)
+filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.intersection_rays.positive = c(0.5), difference_plot = TRUE)
 ```
 
 ### Loading options (for `loadAllTracesMidPoint()`)
@@ -27,6 +27,7 @@ filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays
 
 ### Plotting options (for `plotTraces()`)
 * `rawTraces` - data frame returned from loadAllTracesMidPoint()
+* `polarTraces` - returned from makeTracesPolar(), optional, outdated
 * `layersAll` - list of layers within metadata to extract x and y coodinate data from. Defaults to 'tongue' layer.
 * `tiernameAll` - respective tiers (if applicable) within layers. If none specified, all tiers are checked.
 * `categoriesAll` - respective categories of segments to extract within tiers.
