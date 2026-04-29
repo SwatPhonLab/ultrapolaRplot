@@ -1463,9 +1463,10 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
                             bands.linewidth = 0.3, legend.linewidth = 5, means.linewidth = 3, tick.size = 2, 
                             maskCategories = c(), rays = list(), bestFitRays =
                               FALSE,
-                            bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1,
+                            bestFitRays.show_elbows = FALSE, bestFitRays.start_point_density = 1,
                             bestFitRays.intersection_rays.negative = c(), bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey",
-                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE, angle_between_best_fit = FALSE){
+                            elbow_color = "black", origin.algorithm = "BottomMiddle", bubble = FALSE, difference_plot = TRUE, angle_between_best_fit = FALSE, debug_intersections = FALSE,
+                            identify_max_negative = FALSE, identify_max_positive = FALSE){
   
   plotbounds <- identifyPlotBounds(polarTraces)
   standardDeviation <- list()
@@ -1475,9 +1476,9 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   h_rays = determine_h_number_intersected(matrixIntersection, uniqueSegments, bestFitRays.start_point_density)
   ray_l_final = h_rays[[1]]
-  print(ray_l_final)
+  #print(ray_l_final)
   ray_m_final = h_rays[[2]]
-  print(ray_m_final)
+  #print(ray_m_final)
   
   #first segment, doesn't matter
   hx_coor_l = cos(rayIncrement*ray_l_final) * colMeans(matrixIntersection[[1]], na.rm = TRUE)[[ray_l_final]]
@@ -1703,6 +1704,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
   y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
   
+  
   if (bestFitRays.start_point_density == 0){
     start_xl = min(df[, 11])
     y_xl = df[which.min(df[, 11]), 13]
@@ -1732,6 +1734,47 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   neg_adjusted_angle = c()
   perp_l_original = perp_l
+  
+  if (identify_max_negative){
+    for (p in 1:ifelse(length(angle_neg_rotate)!=0,length(bestFitRays.intersection_rays.negative), 1)){
+      p_val_return <- 1
+      perc <- -1
+      for (neg_perc in seq(20, 95, by = 1)){
+        neg_perc = neg_perc/100
+        on_x_l = x_int + (x_adjusted_l - x_int)*neg_perc
+        on_y_l = y_int + (y_adjusted_l - y_int)*neg_perc
+        
+        adjusted_angle = 0
+        if (length(angle_neg_rotate)!=0){
+          adjusted_angle = (angle_neg_rotate[[p]])*pi/180
+        } 
+        adjusted_angle = -adjusted_angle + atan(perp_l_original) + pi 
+        
+        sign_switch = FALSE
+        if (adjusted_angle > pi){
+          adjusted_angle = (adjusted_angle - pi)
+          sign_switch = TRUE
+        }
+        #print(adjusted_angle)
+        
+        perp_l = tan(adjusted_angle)
+        y_target_l = on_y_l + perp_l*(x_max - on_x_l)
+        
+        p_val <- basic_pairwise(rawTraces, x_coor = x_max, y_coor = y_target_l, angle = adjusted_angle, origin.algorithm = origin.algorithm, mask = maskCategories)
+        #print(p_val)
+        if (p_val < p_val_return){
+          p_val_return = p_val
+          perc = neg_perc
+        }
+      }
+      print(p)
+      print("negative angle of maximum difference")
+      print(perc)
+      print("p-score of neg_max_p_val")
+      print(p_val_return)
+    }
+  }
+  
   if (length(bestFitRays.intersection_rays.negative)!=0){
     for (p in 1:length(bestFitRays.intersection_rays.negative)){
       on_x_l = x_int + (x_adjusted_l - x_int)*bestFitRays.intersection_rays.negative[[p]]
@@ -1790,6 +1833,46 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   pos_adjusted_angle = c()
   perp_m_original = perp_m
+  
+  if (identify_max_positive){
+    for (p in 1:ifelse(length(angle_pos_rotate)!=0,length(bestFitRays.intersection_rays.positive), 1)){
+      p_val_return <- 1
+      perc <- -1
+      for (pos_perc in seq(20, 95, by = 1)){
+        pos_perc = pos_perc/100
+        on_x_m = x_int + (x_adjusted_m - x_int)*pos_perc
+        on_y_m = y_int + (y_adjusted_m - y_int)*pos_perc
+        
+        adjusted_angle = 0
+        if (length(angle_pos_rotate)!=0){
+          adjusted_angle = (angle_pos_rotate[[p]])*pi/180
+        }
+        adjusted_angle = -adjusted_angle + atan(perp_m_original) 
+        sign_switch = FALSE
+        if (length(angle_pos_rotate)!=0){
+          if (adjusted_angle < 0){
+            adjusted_angle = (adjusted_angle + pi)
+            sign_switch = TRUE
+          }
+        }
+        
+        perp_m = tan(adjusted_angle)
+        y_target_m = on_y_m + perp_m*(x_min - on_x_m)
+        
+        p_val <- basic_pairwise(rawTraces, x_coor = x_min, y_coor = y_target_m, angle = adjusted_angle, origin.algorithm = origin.algorithm, mask = maskCategories)
+        if (p_val < p_val_return){
+          p_val_return = p_val
+          perc = pos_perc
+        }
+      }
+      print(p)
+      print("positive angle of maximum difference")
+      print(perc)
+      print("p-score of pos_max_p_val")
+      print(p_val_return)
+    }
+  }
+  
   if (length(bestFitRays.intersection_rays.positive)!=0){
     for (p in 1:length(bestFitRays.intersection_rays.positive)){
       on_x_m = x_int + (x_adjusted_m - x_int)*bestFitRays.intersection_rays.positive[[p]]
@@ -1863,36 +1946,36 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     for (user_ray in 1:length(rays)){
       print("user specified")
       print(user_ray)
-      print(pairwise_comparison(rawTraces, x_coor = rays[[user_ray]][[1]], y_coor = rays[[user_ray]][[2]], angle = rays[[user_ray]][[3]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = rays[[user_ray]][[1]], y_coor = rays[[user_ray]][[2]], angle = rays[[user_ray]][[3]], mask = maskCategories, paletteC = paletteColors, pdf_filename = pdf.filename, origin.algorithm = origin.algorithm, debug_intersections = debug_intersections))
     }
   }
   
   if (length(bestFitRays.intersection_rays.negative)!=0){
     for (p in 1:length(bestFitRays.intersection_rays.negative)){
       print("PAIRWISE COMPARISON NEGATIVE ANGLE")
-      print(neg_adjusted_angle[[p]])
+      #print(neg_adjusted_angle[[p]])
       #points(front_x_l[[p]], front_y_l[[p]], col = "red")
-      points(front_x_org[[p]], front_y_org[[p]], col = "red")
+      #points(front_x_org[[p]], front_y_org[[p]], col = "red")
       print(bestFitRays.intersection_rays.negative[[p]])
-      print("called close up pairwise")
-      print(front_x_l[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      #print("called close up pairwise")
+      #print(front_x_l[[p]])
+      #print(pairwise_comparison(rawTraces, x_coor = front_x_l[[p]], y_coor = front_y_l[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename, debug_intersections = debug_intersections))
       #print("called far away pairwise")
       #print(front_x_org[[p]])
-      print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      print(pairwise_comparison(rawTraces, x_coor = front_x_org[[p]], y_coor = front_y_org[[p]], angle = neg_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename, debug_intersections = debug_intersections))
     }
   }
   
   if (length(bestFitRays.intersection_rays.positive)!=0){
     for (p in 1:length(bestFitRays.intersection_rays.positive)){
       print("PAIRWISE COMPARISON POSITIVE ANGLE")
-      print(pos_adjusted_angle[[p]])
+      #print(pos_adjusted_angle[[p]])
       print(bestFitRays.intersection_rays.positive[[p]])
-      print("called close up pairwise")
-      print(back_x_m[[p]])
+      #print("called close up pairwise")
+      #print(back_x_m[[p]])
       #points(back_x_m[[p]], back_y_m[[p]], col = "red")
-      print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
-      print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename))
+      #print(pairwise_comparison(rawTraces, x_coor = back_x_m[[p]], y_coor = back_y_m[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename, debug_intersections = debug_intersections))
+      print(pairwise_comparison(rawTraces, x_coor = back_x_org[[p]], y_coor = back_y_org[[p]], angle = pos_adjusted_angle[[p]], mask = maskCategories, paletteC = paletteColors, origin.algorithm = origin.algorithm, pdf_filename = pdf.filename, debug_intersections = debug_intersections))
     }
   }
   
@@ -1906,7 +1989,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   #filteredTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600, x_coor = 0, y_coor = 0, interval = 1, singleIncrements = TRUE, maskCategories = c()
   if (difference_plot){
-    differencePlot(rawTraces, origin.algorithm = origin.algorithm)
+    differencePlot(rawTraces, origin.algorithm = origin.algorithm, maskCategories = maskCategories)
   }
   
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
@@ -1915,7 +1998,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   return(slopes_segments)
 }
-
 makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin.x = NA, scaling.factor = 800/600, x_coor = 0, y_coor = 0){
   
   uniqueSegments <- get_unique_segments(rawTraces)
@@ -2031,7 +2113,7 @@ ray_up <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origi
   matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle, x_coor, y_coor)
   # print("in ray up right aftewards")
   # print(matrixIntersection)
-  differences <- sapply(matrixIntersection, function(x) t(x))
+  differences <- lapply(matrixIntersection, function(x) t(x))
   # print("transposed")
   # print(differences)
   
@@ -2154,8 +2236,8 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                        legend.size = 3, transparency = 0.37, pdf.filename = c(), bands.linewidth = 0.3,
                        png.filename = c(), legend.linewidth = 5, means.linewidth = 3, tick.size = 2,
                        maskCategories = c(), rays = list(), bestFitRays = FALSE,
-                       bestFitRays.show_elbows = FALSE, perpendicularRays = FALSE, bestFitRays.start_point_density = 1, bestFitRays.intersection_rays.negative = c(),
-                       bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE, angle_between_best_fit = FALSE){
+                       bestFitRays.show_elbows = FALSE, bestFitRays.start_point_density = 1, bestFitRays.intersection_rays.negative = c(),
+                       bestFitRays.intersection_rays.positive = c(), angle_neg_rotate = c(), angle_pos_rotate = c(), ray_color = "darkgrey", elbow_color = "black", bubble = FALSE, x_coor = 0, y_coor = 0, difference_plot = FALSE, angle_between_best_fit = FALSE, debug_intersections = FALSE, identify_max_negative = FALSE, identify_max_positive = FALSE){
   
   if (typeof(polarTraces) == "character"){
     rawTraces <- filteringRawTraces(rawTraces, tiernameAll, categoriesAll, layersAll, mergeCategories, seg_filter)
@@ -2179,9 +2261,9 @@ plotTraces <- function(rawTraces, polarTraces = "", tiernameAll = c(NA), categor
                         bands.linewidth = bands.linewidth, plot.labels = plot.labels, png.filename = png.filename, 
                         legend.linewidth = legend.linewidth, means.linewidth = means.linewidth, tick.size = tick.size,
                         maskCategories = maskCategories, rays = rays, bestFitRays = bestFitRays, bestFitRays.show_elbows =
-                          bestFitRays.show_elbows, perpendicularRays = perpendicularRays, bestFitRays.start_point_density = bestFitRays.start_point_density,
+                          bestFitRays.show_elbows, bestFitRays.start_point_density = bestFitRays.start_point_density,
                         bestFitRays.intersection_rays.negative = bestFitRays.intersection_rays.negative, bestFitRays.intersection_rays.positive = bestFitRays.intersection_rays.positive, angle_neg_rotate = angle_neg_rotate, angle_pos_rotate = angle_pos_rotate,
-                        ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot, angle_between_best_fit = angle_between_best_fit)
+                        ray_color = ray_color, elbow_color = elbow_color, origin.algorithm = origin.algorithm, bubble = bubble, difference_plot = difference_plot, angle_between_best_fit = angle_between_best_fit, debug_intersections = debug_intersections, identify_max_negative = identify_max_negative, identify_max_positive = identify_max_positive)
   #return(rx)
   return(rawTraces)
 }
@@ -2303,8 +2385,14 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   
   plot(meanX, meanDifference, type = "l", col = "blue", lwd = 2, ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", ylab = "mean difference")
   #labelling x axis with degree from origin
-  axis(1, at = meanX, labels = axisX, tck = 0)
-  axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="red", col.axis="black")
+  #axis(1, at = meanX, labels = axisX, tck = 0)
+  
+  x_ten <- seq(0, length(meanX), by = 10)
+  axis(1, at = meanX[x_ten], labels = axisX[x_ten], tck = 0)
+  abline(v = meanX[x_ten], col = "darkgrey", lty = "dotted")
+  
+  
+  axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="black", col.axis="black") #should be red but change to black right side
   mtext("z score", side = 4, line = 3)
   
   lines(x1, y1, col = "blue", type = "l", lwd = 1)
@@ -2313,14 +2401,16 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   
   lines(meanX, unlist(redLine), col = "red", lwd = 2)
   abline(h=0.0, lty = 2)
-  abline(h= ZScorePositioning, col="red", lty="dotted")
+  abline(h= ZScorePositioning, col="darkgrey", lty="dotted")
   
   #increments of one for z score
   if (singleIncrements){
     for (line in 1:length(additionalLightLines)){
-      abline(h = additionalLightLines[[line]], col = "pink", lty="dotted", lwd = 1)
+      abline(h = additionalLightLines[[line]], col = "black", lty="dotted", lwd = 1) #pink
     }
   }
+  
+  
   
   #vertical lines at min and max of z score
   indices <- which(unlist(redLine) %in% min(unlist(redLine), na.rm = TRUE))
@@ -2332,8 +2422,53 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   
 }
 
+basic_pairwise <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
+                           scaling.factor = 800/600, x_coor = 0, y_coor = 0, angle = 1, mask = c()){
+  
+  filteredTraces <- filteredTraces
+  polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
+  
+  rayIncrement = 3.14159/180 * interval 
+  uniqueSegments <- get_unique_segments(filteredTraces)
+  uniqueSegments <- uniqueSegments
+  dataOfEachCurveNNj <- read_in_data(filteredTraces)
+  
+  matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle, x_coor, y_coor)
+  matrixIntersection <- matrixIntersection[1:2]
+  if (length(mask !=0)){
+    mask = mask[1:2]
+  }
+  differences <- lapply(matrixIntersection, function(x) t(x))
+  
+  values <- c()
+  categories <- c()
+  
+  remove_categories <- c()
+  for (category in 1:(length(names(differences)))){
+    if (length(differences[[category]]) <= sum(is.na(differences[[category]])) + 1){
+      remove_categories <- append(remove_categories, category)
+      #not enough categories for comparison of two segments
+      return(1)
+    }
+  }
+  
+  values <- as.vector(unlist(lapply(differences, as.vector)))
+  values <- (values - min(values, na.rm = TRUE)) 
+  number_col <- as.vector(sapply(differences, function(x) length(x)))
+  for (category in 1:(length(names(differences)))){
+    if (length(mask) != 0){
+      categories <- append(categories, sapply(mask[[category]], function(x) rep(x, each = number_col[[category]])))
+    }else{
+      categories <- append(categories, sapply(names(differences)[[category]], function(x) rep(x, each = number_col[[category]])))
+    }
+  }
+  intersections_grouped <- data.frame(values, categories)
+  pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
+  return(pairwise_results$p.value[1, 1])
+}
+
 pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements = TRUE,  origin.algorithm = "BottomMiddle", origin.x = NA,
-                                scaling.factor = 800/600, x_coor = 0, y_coor = 0, angle = 1, mask = c(), paletteC = c(), pdf_filename = c()){
+                                scaling.factor = 800/600, x_coor = 0, y_coor = 0, angle = 1, mask = c(), paletteC = c(), pdf_filename = c(), debug_intersections = FALSE){
   
   polarTraces <- makeTracesPolar(filteredTraces, origin.algorithm, origin.x, scaling.factor, x_coor, y_coor)
   
@@ -2344,7 +2479,7 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   matrixIntersection <- find_intersection_with_ray_difference_plot(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, angle, x_coor, y_coor)
   # print("matrix intsection AFTERWARDS pairwise")
   # print(matrixIntersection)
-  differences <- sapply(matrixIntersection, function(x) t(x))
+  differences <- lapply(matrixIntersection, function(x) t(x))
   
   values <- c()
   categories <- c()
@@ -2408,7 +2543,9 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   #print(data.frame(values, categories, seg_text), n = 150)
   #print(data.frame(values, categories))
   #intersections_grouped = na.omit(intersections_grouped)
-  print(intersections_grouped)
+  if (debug_intersections){
+    print(intersections_grouped)
+  }
   pairwise_results <- pairwise.t.test(intersections_grouped$values, intersections_grouped$categories, paired = FALSE, pool.sd = FALSE, p.adjust.method = "bonferroni")
   
   
@@ -2417,9 +2554,9 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   segments <- intersections_grouped$categories
   #anova_results <- aov(distances ~ segments)
   #Turkey HSD differences in means should not be 0
-  anova_fit <- lm(distances ~ segments)
-  posthoc <- TukeyHSD(aov(anova_fit))
-  plot(posthoc, cex.axis = .4)
+  # anova_fit <- lm(distances ~ segments)
+  # posthoc <- TukeyHSD(aov(anova_fit))
+  # plot(posthoc, cex.axis = .4)
   #summary(anova_fit) model to see which vowels significant in predicting category -- not rlly wanted? 
   #anova_model <- lm(values ~ categories, data = intersections_grouped)
   #turkey_results <- TurkeyHSD(anova_results)
@@ -2432,24 +2569,29 @@ pairwise_comparison <- function(filteredTraces, interval = 1, singleIncrements =
   paired_matrix <- matrix(combos_list, nrow = 2)
   combos_list <- as.list(as.data.frame(paired_matrix))
   
+  
   comparisons_plot = compare_means(Values ~ Groups, data = data2, 
                                    method = "t.test",
                                    paired = FALSE,
                                    var.equal = FALSE,
                                    pool.sd = FALSE, 
                                    p.adjust.method = "bonferroni")
+  if (debug_intersections){  
+    print(comparisons_plot)
+  }
   
-  print(comparisons_plot)
   #comparisons_plot <- comparisons_plot %>% mutate(p.adj.signif = signif_stars(p.adj))
   #comparisons_plot <- comparisons_plot %>% add_xy_position(x = "Groups")
   comparisons_plot <- comparisons_plot %>% add_significance(p.col = "p.adj", output.col = "p.adj.signif")
   comparisons_plot <- comparisons_plot %>% add_y_position(data = data2, formula = Values ~ Groups)
-  pAdj <- ggboxplot(data2, x = "Groups", y = "Values", color = "black") +
-    stat_pvalue_manual(
-      comparisons_plot,
-      label = "p.adj.signif"
-    )
-  print(pAdj)
+  if (debug_intersections){
+    pAdj <- ggboxplot(data2, x = "Groups", y = "Values", color = "black") +
+      stat_pvalue_manual(
+        comparisons_plot,
+        label = "p.adj.signif"
+      )
+    print(pAdj)
+  }
   
   # fiddle <- ggviolin(data2, x = "Groups", y = "Values", fill = "Groups", color = "Groups", palette = paletteC, alpha = 0.37,
   #        add = "boxplot", add.params = list(fill = "white"), cex.lab = 5)+
