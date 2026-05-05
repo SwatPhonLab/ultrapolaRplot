@@ -31,6 +31,7 @@ filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays
 * `layersAll` - list of layers within metadata to extract x and y coodinate data from. Defaults to 'tongue' layer.
 * `tiernameAll` - respective tiers (if applicable) within layers. If none specified, all tiers are checked.
 * `categoriesAll` - respective categories of segments to extract within tiers.
+* `debug_intersections` - boolean, whether or not to display additional information such as the intersections per segment, Turkey HSD plots, and bar plots.
 * `mergeCategories` - boolean or boolean array, as to whether to merge respective categories.
 * `seg_filter` - respective segment_text for additional filtering
 * `origin.algorithm` - algorithm to use in deciding origin of polar coordinate system; either bottom middle of frames (`BottomMiddle`, default) or bottom and mean of left-right range (`BottomMean`)
@@ -55,6 +56,8 @@ filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays
 * `debug_intersections` - boolean, whether or not to print data frame of segments and their intersections with the perpedicular ray(s)
 * `elbow_color` - color of PMC along means (default = "black")
 * `interval` - sampling interval, in degrees, for finding intersections with existing traces (default = `1`)
+* `identify_max_negative` - boolean, whether or not to print percentage along negative best-fit line with lowest p-value (maximal distance). 
+* `identify_max_negative` - boolean, whether or not to print percentage along positive best-fit line with lowest p-value (maximal distance).
 * `means.lines` - boolean, whether or not to display mean lines
 * `means.points` - boolean, whether or not to show points on lines for means
 * `means.styles` - array to override default solid line (sequentially in order of categories)
