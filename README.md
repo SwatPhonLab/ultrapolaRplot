@@ -18,8 +18,9 @@ The following code snippet shows a basic example of use:
 ```R
 library(ultrapolaRplot)
 
-rawTraces <- loadAllTracesMidPoint(filepath)  # project directory containing UltraTrace metadata file; tier to identify non-empty elements from for categories to plot
-filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays = TRUE, perpendicularRays = TRUE, bestFitRays.intersection_rays.positive = c(0.5), difference_plot = TRUE)
+rawTraces <- loadAllTracesMidPoint(filepath)
+filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays = TRUE,
+bestFitRays.intersection_rays.positive = c(0.5, 0.8), difference_plot = TRUE, bubble = TRUE)
 ```
 
 ### Loading options (for `loadAllTracesMidPoint()`)
