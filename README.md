@@ -13,14 +13,15 @@ Currently ultrapolaRplot supports ultrasound tongue imaging trace data from [Ult
 
 ## Use
 
-The following code snippet shows a basic example of use:
+The following code snippet (output is in ultrapolaRplot-Ex.pdf) shows a basic example of use:
 
 ```R
 library(ultrapolaRplot)
 
 rawTraces <- loadAllTracesMidPoint(filepath)
 filteredTraces <- plotTraces(rawTraces, categoriesAll = c("o", "i"), bestFitRays = TRUE,
-bestFitRays.intersection_rays.positive = c(0.5, 0.8), difference_plot = TRUE, bubble = TRUE)
+bestFitRays.intersection_rays.negative = c(0.5)
+bestFitRays.intersection_rays.positive = c(0.5, 0.8), difference_plot = TRUE)
 ```
 
 ### Loading options (for `loadAllTracesMidPoint()`)
