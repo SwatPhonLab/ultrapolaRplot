@@ -40,6 +40,8 @@ library(ggpubr)
 library(rstatix)
 
 library(vegan)
+
+library(gss)
 ```
 
 ```{r}
@@ -1187,6 +1189,7 @@ find_intersection_with_ray <- function(formatedData, dataOfEachCurveNNj, uniqueS
     } #end segment for loop
   
   } #end angle ray for loop 
+  #print(matrixIntersection)
   return(matrixIntersection) # columns for rays
 } 
 ```
@@ -1607,6 +1610,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   on.exit(par(oldpar))
   par(mar = c(0, 4.4, 0, 1.25) + 2)
   
+  
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1, family = "DejaVu Serif", cex.axis = 20)
   
   if(plot.ticks == TRUE){
@@ -2016,6 +2020,125 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   if (difference_plot){
     differencePlot(rawTraces, origin.algorithm = origin.algorithm, maskCategories = maskCategories)
   }
+  #SSANOVA and GAMS
+    df_ssanova <- do.call(rbind, lapply(names(polarTraces), function(cat) {
+    do.call(rbind, lapply(seq_along(polarTraces[[cat]]), function(i) {
+      mat <- polarTraces[[cat]][[i]]
+  
+      data.frame(
+        category = cat,
+        trace_id = i,
+        x     = as.numeric(mat[1, ]),
+        y     = as.numeric(mat[2, ]),
+        theta = as.numeric(mat[3, ]),
+        r     = as.numeric(mat[4, ])
+      )
+    }))
+  }))
+  
+  df_ssanova <- unique(df_ssanova)
+  
+  # Preserve the original order from uniqueSegments
+  df_ssanova$category <- factor(df_ssanova$category, levels = uniqueSegments)
+  cats <- uniqueSegments
+  
+  # Make sure colors and line styles match category names, not position
+  names(paletteColors) <- uniqueSegments
+  names(means.styles) <- uniqueSegments
+  
+  pred_df <- do.call(rbind, lapply(cats, function(cat) {
+    df_cat <- subset(df_ssanova, category == cat)
+  
+    fit <- ssanova(r ~ theta, data = df_cat)
+  
+    theta_new <- seq(
+      min(df_cat$theta, na.rm = TRUE),
+      max(df_cat$theta, na.rm = TRUE),
+      length.out = 300
+    )
+  
+    newdat <- data.frame(theta = theta_new)
+  
+    pred <- predict(fit, newdata = newdat, se = TRUE)
+  
+    data.frame(
+      category = cat,
+      theta    = theta_new,
+      r_fit    = pred$fit,
+      r_lo     = pred$fit - 1.96 * pred$se.fit,
+      r_hi     = pred$fit + 1.96 * pred$se.fit
+    )
+  }))
+  
+  # Keep category order in prediction data
+  pred_df$category <- factor(pred_df$category, levels = uniqueSegments)
+  
+  # Convert predictions to Cartesian coordinates
+  pred_df$x_fit <- pred_df$r_fit * cos(pred_df$theta)
+  pred_df$y_fit <- pred_df$r_fit * sin(pred_df$theta)
+  
+  pred_df$x_lo <- pred_df$r_lo * cos(pred_df$theta)
+  pred_df$y_lo <- pred_df$r_lo * sin(pred_df$theta)
+  
+  pred_df$x_hi <- pred_df$r_hi * cos(pred_df$theta)
+  pred_df$y_hi <- pred_df$r_hi * sin(pred_df$theta)
+  
+  # Build closed radial confidence bands
+  band_df <- do.call(rbind, lapply(cats, function(cat) {
+    d <- subset(pred_df, category == cat)
+  
+    data.frame(
+      category = cat,
+      x = c(d$x_hi, rev(d$x_lo)),
+      y = c(d$y_hi, rev(d$y_lo))
+    )
+  }))
+  
+  # Keep category order in band data
+  band_df$category <- factor(band_df$category, levels = uniqueSegments)
+  
+  print(
+    ggplot() +
+      geom_path(
+        data = df_ssanova,
+        aes(
+          x = x,
+          y = y,
+          color = category,
+          group = interaction(category, trace_id)
+        ),
+        alpha = 0.00,
+        linewidth = 0.4
+      ) +
+      geom_polygon(
+        data = band_df,
+        aes(
+          x = x,
+          y = y,
+          fill = category,
+          group = category
+        ),
+        alpha = 0.2,
+        color = NA
+      ) +
+      geom_path(
+        data = pred_df,
+        aes(
+          x = x_fit,
+          y = y_fit,
+          color = category,
+          group = category,
+          linetype = category
+        ),
+        linewidth = 1
+      ) +
+      scale_color_manual(values = paletteColors, breaks = uniqueSegments) +
+      scale_fill_manual(values = paletteColors, breaks = uniqueSegments) +
+      scale_linetype_manual(values = means.styles, breaks = uniqueSegments) +
+      coord_fixed() +
+      theme_minimal()
+  )
+  #END
     
   if(length(pdf.filename)!=0 || length(png.filename)!=0 ){
     dev.off()
@@ -2043,6 +2166,7 @@ makeTracesPolar <- function(rawTraces, origin.algorithm = "BottomMiddle", origin
   }
   
   polarTraces <- formating_data(dataOfEachCurveNNj, uniqueSegments, origin.x = origin.x, scaling.factor = scaling.factor, x_coor = x_coor, y_coor = y_coor)
+  #print(polarTraces)
   return(polarTraces)
 }
 
@@ -2194,12 +2318,36 @@ rawTracesD <- loadAllTracesMidPoint("~/Documents/plinguistics/dolgan/ultrasound-
 # filteredTraces <- plotTraces(rawTracesEx,
 # categoriesAll = c("o", "i"), bestFitRays = TRUE,
 # bestFitRays.intersection_rays.negative = c(0.41), bestFitRays.intersection_rays.positive = c(0.2), difference_plot = TRUE, identify_max_negative = TRUE, identify_max_positive = TRUE)
+DarkRed = '#B30000'
+#LightRed = '#FF69B5' 
+LightRed = '#FF6767' 
+DarkBlue = '#0000FF'
+LightBlue = '#00D9FF'
+DarkGreen = '#063b00'
+LightGreen = '#0eff00'
+DarkPurple = '#9a00d6'
+Orange = '#d55e00'
+Pink = '#FFB7CE'
+CB1 = '#648FFF'
+CB2 = '#785EF0'
+CB3 = '#DC267F'
+CB4 = '#FE6100'
+CB5 = '#FFB000'
+Black = '#000000'
+Grey = '#939799'
+Grey1 = '#555555'
+LightPurple = '#CBC3E3'
 
-filteredTraces <- plotTraces(rawTracesD, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow"),
-                             categoriesAll = list(c('i', 'iː', 'y', 'yː', 'ɛ', 'œ'), c('ɯ', 'ɯː', 'u', 'a', 'ɔ')),
-                             maskCategories = c("front vowels", "back vowels"),
-                             palette = c(DarkBlue, DarkRed),
-                             means.styles = c(1,1), legend.size=2, legend.position="bottomleft", legend.linewidth=2, difference_plot = TRUE, bestFitRays = TRUE, bestFitRays.intersection_rays.negative = c(0.47))
+filteredTraces <- plotTraces(rawTracesD, mergeCategories = c(TRUE), tiernameAll = c("vow", "vow", "vow", "vow", "vow", "vow", "vow", "vow"),
+categoriesAll = list(c('i', 'iː'), c('y', 'yː'), c('ɛ'), c('œ'), c('ɯ', 'ɯː'), c('u'), c('a'), c('ɔ')),
+maskCategories = c("i/iː", "y/yː", "ɛ", "œ", "ɯ/ɯː", "u", "ɑ", "ɔ"),
+palette = c(LightBlue, LightBlue, DarkBlue, DarkBlue, Pink, Pink, DarkRed, LightRed),
+means.styles = c(1,2,1,2,1,2,1,2), legend.size=2, legend.position="bottomleft", legend.linewidth=2, bestFitRays.intersection_rays.negative = c(0.48), bestFitRays = TRUE)
+
+# filteredTraces <- plotTraces(rawTracesD, mergeCategories = c(FALSE), tiernameAll = c("vow", "vow"),
+#                              categoriesAll = list(c('i', 'iː', 'y', 'yː', 'ɛ', 'œ'), c('ɯ', 'ɯː', 'u', 'a', 'ɔ')),
+#                              maskCategories = c("front vowels", "back vowels"),
+#                              means.styles = c(1,1), legend.size=2, legend.position="bottomleft", legend.linewidth=2, difference_plot = TRUE, bestFitRays = TRUE, bestFitRays.intersection_rays.negative = c(0.47))
 
 
 ```
@@ -2383,7 +2531,7 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   rayIncrement = 3.14159/180 * interval 
   uniqueSegments <- get_unique_segments(filteredTraces)
   dataOfEachCurveNNj <- read_in_data(filteredTraces)
-    
+  
   matrixIntersection <- find_intersection_with_ray(polarTraces, dataOfEachCurveNNj, uniqueSegments, rayIncrement, x_coor, y_coor)
   
   meanDifference <- list()
@@ -2398,7 +2546,7 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
       #both are not empty
       segment1 <- (matrixIntersection[[1]][all(), ray])[!is.na(matrixIntersection[[1]][all(), ray])]
       segment2 <- (matrixIntersection[[2]][all(), ray])[!is.na(matrixIntersection[[2]][all(), ray])]
-  
+      
       differences <- list()
       #4 by 4 x grid
       for (item1 in 1:length(segment1)){
@@ -2431,12 +2579,12 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   xSDLow <- list()
   ySDHigh <- list()
   ySDLow <- list()  
-
-  for (ray in 1:length(matrixIntersection[[1]][1, all()])){
   
+  for (ray in 1:length(matrixIntersection[[1]][1, all()])){
+    
     xSDHigh<- append(xSDHigh, cos(rayIncrement*ray*pi/180)*(standardDeviation[[ray]]) + meanX[[ray]])
     xSDLow <-  append(xSDLow, cos(rayIncrement*ray*pi/180)*(-standardDeviation[[ray]]) + meanX[[ray]])
-  
+    
     ySDHigh <- append(ySDHigh, sin(rayIncrement*ray*pi/180)*(meanDifference[[ray]] + standardDeviation[[ray]]))
     ySDLow <-  append(ySDLow, sin(rayIncrement*ray*pi/180)*(meanDifference[[ray]] - standardDeviation[[ray]]))
     
@@ -2448,7 +2596,7 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   
   x2 <- rev(unlist(lapply(xSDHigh, function(x) na.omit(x)), recursive = TRUE))
   y2 <- rev(unlist(lapply(ySDHigh, function(x) na.omit(x)), recursive = TRUE))
-    
+  
   ZscoreRange <- max(na.omit(unlist(redLine))) - min(na.omit(unlist(redLine)))
   #scales Z score line to fit the range of plot (mean difference line)
   scalingFactor <- ZscoreRange/(max(y2) - min(y1))
@@ -2491,34 +2639,47 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   #par(pty = "s")
   par(mar = c(4, 4.4, 1, 3) + 2)
   
-  plot(meanX, meanDifference, type = "l", col = "blue", lwd = 2, ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", ylab = "mean difference")
+  plot(meanX, meanDifference, type = "n", ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", cex.lab = 2.0, ylab = NA)
+  #grid(lty = 2, col = "grey", lwd = 1)
+  #define grid lines first
+  
   #labelling x axis with degree from origin
   #axis(1, at = meanX, labels = axisX, tck = 0)
-  
   x_ten <- seq(0, length(meanX), by = 10)
   axis(1, at = meanX[x_ten], labels = axisX[x_ten], tck = 0)
-  abline(v = meanX[x_ten], col = "darkgrey", lty = "dotted")
-  
-  
-  axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="black", col.axis="black") #should be red but change to black right side
-  mtext("z score", side = 4, line = 3)
-  
-  lines(x1, y1, col = "blue", type = "l", lwd = 1)
-  lines(x2, y2, col = "blue", type = "l", lwd = 1)
-  polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor( "blue", alpha.f = 0.37), border = NA)
-  
-  lines(meanX, unlist(redLine), col = "red", lwd = 2)
-  abline(h=0.0, lty = 2)
-  abline(h= ZScorePositioning, col="darkgrey", lty="dotted")
+  abline(v = meanX[x_ten], col = "grey") #, lty = "dotted"
   
   #increments of one for z score
   if (singleIncrements){
     for (line in 1:length(additionalLightLines)){
-      abline(h = additionalLightLines[[line]], col = "black", lty="dotted", lwd = 1) #pink
+      if (additionalLightLines[[line]] == 0){
+        abline(h = additionalLightLines[[line]], col = "grey",  lwd = 2.2) #pink lty="solid",
+      }else{
+        abline(h = additionalLightLines[[line]], col = "grey",  lwd = 1) #pinklty="dashed",
+      }
     }
   }
   
- 
+  #make sure don't show up under transparent data
+  #polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor("white", alpha.f = 1.00), border = NA)
+  lines(meanX, meanDifference, type = "l", col = "blue", lwd = 2)
+  mtext("mean difference", side = 2, line = 3, cex = 2.0)
+  
+  #axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="darkgrey", col.axis="black") #should be red but change to black right side
+  #keep single increments
+  #print(additionalLightLines)
+  axis(side=4, at = additionalLightLines, labels = unlist(additionalLightLines)*scalingFactor, col="black", col.axis="black") #labels=ZScoreLabels,
+  mtext("z score", side = 4, line = 3, cex = 2.0)
+  
+  #no outside lines
+  #lines(x1, y1, col = "blue", type = "l", lwd = 1)
+  #lines(x2, y2, col = "blue", type = "l", lwd = 1)
+  polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor("blue", alpha.f = 0.37), border = NA)
+  
+  lines(meanX, unlist(redLine), col = "red", lwd = 2)
+  #abline(h=0.0, lty = 2)
+  #abline(h= ZScorePositioning, col="darkgrey", lty="dotted") #too confusing just single increments
+  
   
   #vertical lines at min and max of z score
   indices <- which(unlist(redLine) %in% min(unlist(redLine), na.rm = TRUE))

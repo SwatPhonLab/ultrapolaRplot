@@ -2383,33 +2383,46 @@ differencePlot <- function(filteredTraces, origin.algorithm = "BottomMiddle", or
   #par(pty = "s")
   par(mar = c(4, 4.4, 1, 3) + 2)
   
-  plot(meanX, meanDifference, type = "l", col = "blue", lwd = 2, ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", ylab = "mean difference")
+  plot(meanX, meanDifference, type = "n", ylim = c(min(y1), max(y2)), xlim = c(min(x1), max(x2)), xaxt = "n", xlab = "angle from origin", cex.lab = 2.0, ylab = NA)
+  #grid(lty = 2, col = "grey", lwd = 1)
+  #define grid lines first
+  
   #labelling x axis with degree from origin
   #axis(1, at = meanX, labels = axisX, tck = 0)
-  
   x_ten <- seq(0, length(meanX), by = 10)
   axis(1, at = meanX[x_ten], labels = axisX[x_ten], tck = 0)
-  abline(v = meanX[x_ten], col = "darkgrey", lty = "dotted")
-  
-  
-  axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="black", col.axis="black") #should be red but change to black right side
-  mtext("z score", side = 4, line = 3)
-  
-  lines(x1, y1, col = "blue", type = "l", lwd = 1)
-  lines(x2, y2, col = "blue", type = "l", lwd = 1)
-  polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor( "blue", alpha.f = 0.37), border = NA)
-  
-  lines(meanX, unlist(redLine), col = "red", lwd = 2)
-  abline(h=0.0, lty = 2)
-  abline(h= ZScorePositioning, col="darkgrey", lty="dotted")
+  abline(v = meanX[x_ten], col = "grey") #, lty = "dotted"
   
   #increments of one for z score
   if (singleIncrements){
     for (line in 1:length(additionalLightLines)){
-      abline(h = additionalLightLines[[line]], col = "black", lty="dotted", lwd = 1) #pink
+      if (additionalLightLines[[line]] == 0){
+        abline(h = additionalLightLines[[line]], col = "grey",  lwd = 2.2) #pink lty="solid",
+      }else{
+        abline(h = additionalLightLines[[line]], col = "grey",  lwd = 1) #pinklty="dashed",
+      }
     }
   }
   
+  #make sure don't show up under transparent data
+  #polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor("white", alpha.f = 1.00), border = NA)
+  lines(meanX, meanDifference, type = "l", col = "blue", lwd = 2)
+  mtext("mean difference", side = 2, line = 3, cex = 2.0)
+  
+  #axis(side=4, at = ZScorePositioning, labels=ZScoreLabels, col="darkgrey", col.axis="black") #should be red but change to black right side
+  #keep single increments
+  #print(additionalLightLines)
+  axis(side=4, at = additionalLightLines, labels = unlist(additionalLightLines)*scalingFactor, col="black", col.axis="black") #labels=ZScoreLabels,
+  mtext("z score", side = 4, line = 3, cex = 2.0)
+  
+  #no outside lines
+  #lines(x1, y1, col = "blue", type = "l", lwd = 1)
+  #lines(x2, y2, col = "blue", type = "l", lwd = 1)
+  polygon(c(x1, rev(x2)), c(y1, rev(y2)), col = adjustcolor("blue", alpha.f = 0.37), border = NA)
+  
+  lines(meanX, unlist(redLine), col = "red", lwd = 2)
+  #abline(h=0.0, lty = 2)
+  #abline(h= ZScorePositioning, col="darkgrey", lty="dotted") #too confusing just single increments
   
   
   #vertical lines at min and max of z score
