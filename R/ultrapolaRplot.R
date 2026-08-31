@@ -1577,10 +1577,10 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     png(filename = png.filename, width = 4000*(plotbounds[[2]] - plotbounds[[1]] - 0.05), height = 4000 * (plotbounds[[4]] - plotbounds[[3]] -0.05), units = "px")
   }
   
-  
   oldpar <- par(no.readonly = TRUE)
   on.exit(par(oldpar))
-  par(mar = c(0, 4.4, 0, 1.25) + 2)
+  #par(mar = c(0, 4.4, 0, 1.25) + 2)
+  par(mar = c(0.1, 0.1, 0.1, 0.1))
   
   plot(1, type = "n", xlab = "", ylab = "", ylim = c(plotbounds[[3]], plotbounds[[4]]), xlim = c(plotbounds[[1]], plotbounds[[2]]), xaxt = "n", yaxt = "n", asp = 1, family = "DejaVu Serif", cex.axis = 20)
   
@@ -1647,27 +1647,28 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
     if (numberColumns==0){
       numberColumns = 1
     }
+  }
     
-    if (legend.position == "center"){
-      # legend(xPlotAverage, yPlotAverage, legend = uniqueSegments,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
-      legend("center", legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
-    } else if (legend.position == "topleft"){
-      # legend(plotbounds[[1]], plotbounds[[4]], legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
-      legend("topleft", legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
-    }else if (legend.position == "bottomright"){
-      # legend((xPlotAverage + .5*plotbounds[[2]]), yPlotAverage,  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol = round(length(uniqueSegments)/5))
-      legend("bottomright",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
-    } else if (legend.position == "bottomleft"){
-      legend("bottomleft",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
-    } else if (legend.position == "topright"){
-      legend("topright",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
-    }
+  if (legend.position == "center"){
+    # legend(xPlotAverage, yPlotAverage, legend = uniqueSegments,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
+    legend("center", legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories,  col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+  } else if (legend.position == "topleft"){
+    # legend(plotbounds[[1]], plotbounds[[4]], legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5)
+    legend("topleft", legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+  }else if (legend.position == "bottomright"){
+    # legend((xPlotAverage + .5*plotbounds[[2]]), yPlotAverage,  legend = uniqueSegments, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = 5, ncol = round(length(uniqueSegments)/5))
+    legend("bottomright",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+  } else if (legend.position == "bottomleft"){
+    legend("bottomleft",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
+  } else if (legend.position == "topright"){
+    legend("topright",  legend = if (length(maskCategories) == 0) uniqueSegments else maskCategories, col = paletteColors, cex = legend.size, bty = "n", lty=ltyNumerical, lwd = legend.linewidth, ncol =  numberColumns)
   }
   
   perp_l = -1/averaged_everything[[1]]
   perp_m = -1/averaged_everything[[2]]
   
   
+
   if (length(rays) > 0) {
     # print("lLENGTH")
     # print(length(rays))
@@ -1703,7 +1704,6 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   b2 <- y_xm - perp_m * end_xm
   x_adjusted_m <- (b2 - averaged_everything[[4]]) / (averaged_everything[[2]] - perp_m)
   y_adjusted_m <- averaged_everything[[2]] * x_adjusted_m +  averaged_everything[[4]]
-  
   
   if (bestFitRays.start_point_density == 0){
     start_xl = min(df[, 11])
@@ -1833,6 +1833,7 @@ plotStyleTraces <- function(rawTraces, matrixIntersection, polarTraces, dataOfEa
   
   pos_adjusted_angle = c()
   perp_m_original = perp_m
+
   
   if (identify_max_positive){
     for (p in 1:ifelse(length(angle_pos_rotate)!=0,length(bestFitRays.intersection_rays.positive), 1)){
